@@ -24,7 +24,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Главная', icon: Home },
-  { href: '/dashboard/consultation', label: 'AI Консультация', icon: MessageSquare },
   { href: '/dashboard/clinics', label: 'Клиники', icon: Building2 },
   { href: '/dashboard/rehabilitation', label: 'Реабилитация', icon: Dumbbell },
   { href: '/dashboard/history', label: 'История', icon: History },

@@ -1,0 +1,97 @@
+import clinicsData from '@/data/clinics.json';
+import rehabsData from '@/data/rehabilitation.json';
+
+export interface GrokMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface RouteRecommendation {
+  specialist: string;
+  rehab_needed: boolean;
+  clinics: string[]; // IDs
+  rehab_centers: string[]; // IDs
+}
+
+const SYSTEM_PROMPT = `
+Вы — медицинский координатор-маршрутизатор для города Шымкент, Казахстан. Ваша задача — помочь пациенту сориентироваться, к какому врачу обратиться, нужна ли реабилитация, и подобрать лучшие медицинские организации.
+
+КРИТИЧЕСКИЕ ПРАВИЛА:
+1. Вы НЕ должны ставить диагноз, назначать лечение или делать медицинские заключения.
+2. Вы должны выполнять исключительно функции маршрутизации (определить специалиста, клиники, необходимость реабилитации).
+3. В конце каждого вашего ответа ОБЯЗАТЕЛЬНО должна быть следующая строка предупреждения:
+"AI не заменяет врача и не ставит диагноз. Рекомендации носят исключительно информационный характер."
+
+АЛГОРИТМ РАБОТЫ:
+1. Оцените запрос пациента.
+2. Автоматически учитывайте профиль пациента, если он передан (имя, возраст, пол, рост, вес, аллергии, хронические заболевания, город). Никогда не переспрашивайте эти данные, если они уже есть в профиле!
+3. Если данных недостаточно для точной маршрутизации (например, непонятно, была ли травма колена, есть ли температура, как долго болит), задайте 2-3 точечных уточняющих вопроса.
+4. Когда у вас будет достаточно информации, сформируйте рекомендацию:
+   - К какому врачу обратиться (например, Травматолог, Кардиолог, Невролог).
+   - Требуется ли реабилитация.
+   - Какие конкретно клиники/центры подходят лучше всего из нашей базы данных (рекомендуйте до 3 подходящих клиник/центров). Объясните свой выбор для каждой организации на основе рейтинга, расстояния, профиля или отзывов.
+5. Когда вы даёте окончательную маршрутную рекомендацию, вы ДОЛЖНЫ в самом конце вашего ответа (после предупреждения или перед ним) добавить специальный XML-блок \`<route>...</route>\` со структурированным JSON внутри, чтобы интерфейс мог отобразить карту и карточки.
+
+Формат XML-блока маршрута (строго в таком виде):
+<route>
+{
+  "specialist": "Название специальности врача",
+  "rehab_needed": true, // или false
+  "clinics": ["ID_клиники_1", "ID_клиники_2"], // IDs рекомендуемых клиник из базы данных
+  "rehab_centers": ["ID_центра_1"] // IDs рекомендуемых реабилитационных центров из базы данных (если нужны)
+}
+</route>
+
+Доступные клиники в Шымкенте:
+${JSON.stringify(clinicsData.map(c => ({ id: c.id, name: c.name, address: c.address, specializations: c.specializations, type: c.type, rating: c.rating, description: c.description })), null, 2)}
+
+Доступные реабилитационные центры в Шымкенте:
+${JSON.stringify(rehabsData.map(r => ({ id: r.id, name: r.name, address: r.address, programs: r.programs, rating: r.rating, description: r.description })), null, 2)}
+`;
+
+export async function getGrokRoutingResponse(
+  chatHistory: GrokMessage[],
+  userProfile: any
+): Promise<string> {
+  const apiKey = process.env.NEXT_PUBLIC_GROK_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('API key (NEXT_PUBLIC_GROK_API_KEY) is not configured in .env.local');
+  }
+
+  // Inject profile info into system message
+  const profileInfo = userProfile
+    ? `Профиль пациента:\nИмя: ${userProfile.name}\nВозраст: ${userProfile.age}\nПол: ${userProfile.gender === 'male' ? 'Мужской' : userProfile.gender === 'female' ? 'Женский' : 'Другой'}\nРост: ${userProfile.height} см\nВес: ${userProfile.weight} кг\nАллергии: ${userProfile.allergies || 'нет'}\nХронические заболевания: ${userProfile.chronicDiseases || 'нет'}\nГород: ${userProfile.city}`
+    : 'Профиль пациента: отсутствует (попросите базовую информацию при необходимости)';
+
+  const messages: GrokMessage[] = [
+    { role: 'system', content: `${SYSTEM_PROMPT}\n\n${profileInfo}` },
+    ...chatHistory,
+  ];
+
+  try {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-2-latest',
+        messages: messages.map(m => ({ role: m.role, content: m.content })),
+        temperature: 0.2,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Grok API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error: any) {
+    console.error('Error calling Grok API:', error);
+    throw error;
+  }
+}

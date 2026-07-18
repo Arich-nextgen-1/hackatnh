@@ -1,9 +1,5 @@
-import ConsultationView from '@/components/dashboard/ConsultationView';
-
-export const metadata = {
-  title: 'AI Консультация — MediRoute AI',
-};
+import { redirect } from 'next/navigation';
 
 export default function ConsultationPage() {
-  return <ConsultationView />;
+  redirect('/dashboard');
 }

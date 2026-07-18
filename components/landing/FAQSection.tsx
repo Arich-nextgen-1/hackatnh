@@ -77,7 +77,7 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="py-28 bg-[#F8FAFC]">
+    <section id="faq" className="py-28 bg-[#F8FAFC]">
       <div className="max-w-4xl mx-auto px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

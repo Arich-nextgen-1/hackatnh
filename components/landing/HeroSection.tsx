@@ -50,8 +50,15 @@ const stats = [
 ];
 
 export default function HeroSection({ onStart }: HeroSectionProps) {
+  const handleScroll = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden gradient-hero">
+    <section id="hero" className="relative min-h-screen flex items-center overflow-hidden gradient-hero">
       {/* Dot grid background */}
       <div className="absolute inset-0 dot-grid opacity-40" />
 
@@ -80,12 +87,17 @@ export default function HeroSection({ onStart }: HeroSectionProps) {
           </div>
 
           <div className="hidden md:flex items-center gap-1">
-            {['Возможности', 'Клиники', 'Тарифы', 'FAQ'].map((item) => (
+            {([
+              ['Главная', 'hero'],
+              ['Возможности', 'features'],
+              ['FAQ', 'faq'],
+            ] as const).map(([label, targetId]) => (
               <button
-                key={item}
-                className="px-4 py-2 text-sm font-medium text-[#64748B] hover:text-[#172033] rounded-lg hover:bg-white/60 transition-all duration-150"
+                key={targetId}
+                onClick={() => handleScroll(targetId)}
+                className="px-4 py-2 text-sm font-medium text-[#64748B] hover:text-[#172033] rounded-lg hover:bg-white/60 transition-all duration-150 cursor-pointer"
               >
-                {item}
+                {label}
               </button>
             ))}
           </div>
@@ -156,9 +168,10 @@ export default function HeroSection({ onStart }: HeroSectionProps) {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={onStart}
                 className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-base font-medium text-[#172033] bg-white border border-[#DCE5EE] hover:border-[#B8CADF] shadow-[0_1px_3px_0_rgb(0,0,0,0.08)] transition-all"
               >
-                Смотреть демо
+                Перейти в приложение
               </motion.button>
             </motion.div>
 

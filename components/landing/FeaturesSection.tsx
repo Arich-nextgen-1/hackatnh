@@ -48,7 +48,7 @@ const item = {
 
 export default function FeaturesSection() {
   return (
-    <section className="py-28 relative overflow-hidden">
+    <section id="features" className="py-28 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-[#EEF3F8] to-[#F8FAFC]" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
