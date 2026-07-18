@@ -70,14 +70,14 @@ export async function getGrokRoutingResponse(
   ];
 
   try {
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-2-latest',
+        model: 'llama-3.3-70b-versatile',
         messages: messages.map(m => ({ role: m.role, content: m.content })),
         temperature: 0.2,
       }),
