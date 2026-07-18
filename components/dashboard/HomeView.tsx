@@ -446,8 +446,8 @@ export default function HomeView() {
                   <Sparkles size={16} className="text-white" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-[#172033]">AI Консультация</div>
-                  <div className="text-xs text-[#64748B]">Опишите ситуацию — AI подберёт маршрут</div>
+                  <div className="text-sm font-semibold text-[#172033]">Что вас беспокоит?</div>
+                  <div className="text-xs text-[#64748B]">Опишите ситуацию — подберём специалиста и клинику</div>
                 </div>
               </div>
 
@@ -496,35 +496,36 @@ export default function HomeView() {
                     !description.trim() ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  Продолжить
+                  Начать анализ
                   <ArrowRight size={15} />
                 </motion.button>
               </div>
             </motion.div>
 
-            {/* Stats row */}
+            {/* Feature value cards */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.18 }}
-              className="grid grid-cols-2 sm:grid-cols-3 gap-4"
+              className="grid grid-cols-2 gap-4"
             >
               {[
-                { label: 'Клиник в базе', value: '10 основных', color: '#2563EB' },
-                { label: 'Реабилитационных центров', value: '10 основных', color: '#06B6D4' },
-                { label: 'Активный AI-помощник', value: 'Grok 2.0', color: '#64748B' },
-              ].map((stat) => (
+                { label: 'Подбор специалиста', desc: 'Определим, к какому врачу обратиться', color: '#2563EB', bg: '#EEF3F8' },
+                { label: 'Поиск клиники', desc: 'По профилю, рейтингу и расположению', color: '#06B6D4', bg: '#EFF9FB' },
+                { label: 'Реабилитация', desc: 'Центры восстановления после лечения', color: '#059669', bg: '#ECFDF5' },
+                { label: 'Маршрут пациента', desc: 'От первого обращения до записи', color: '#7C3AED', bg: '#F5F3FF' },
+              ].map((card) => (
                 <div
-                  key={stat.label}
+                  key={card.label}
                   className="bg-card rounded-xl border border-[#DCE5EE] px-4 py-4 shadow-[0_1px_2px_0_rgb(0,0,0,0.04)]"
                 >
                   <div
-                    className="text-2xl font-bold tracking-tight mb-0.5"
-                    style={{ color: stat.color }}
+                    className="text-xs font-bold mb-1"
+                    style={{ color: card.color }}
                   >
-                    {stat.value}
+                    {card.label}
                   </div>
-                  <div className="text-xs text-[#64748B] font-medium">{stat.label}</div>
+                  <div className="text-xs text-[#64748B] leading-relaxed">{card.desc}</div>
                 </div>
               ))}
             </motion.div>
