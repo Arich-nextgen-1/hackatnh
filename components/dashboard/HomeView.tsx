@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { getGrokRoutingResponse, GrokMessage } from '@/services/grok';
 import clinicsData from '@/data/clinics.json';
@@ -27,20 +27,27 @@ export default function HomeView() {
   const [chatHistory, setChatHistory] = useState<GrokMessage[]>([]);
   const [isActiveChat, setIsActiveChat] = useState(false);
   const [grokError, setGrokError] = useState<string | null>(null);
-  
   // Structured route recommendation parsed from AI response
   const [currentRoute, setCurrentRoute] = useState<any | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [lastQuery, setLastQuery] = useState<string | null>(null);
 
-  // Load favorites on mount
+  // Load favorites & last query on mount
   useEffect(() => {
     try {
       const storedFavs = window.localStorage.getItem('mediroute_favorites');
       if (storedFavs) {
         setFavorites(JSON.parse(storedFavs));
       }
+      const existing = window.localStorage.getItem('mediroute_history');
+      if (existing) {
+        const historyList = JSON.parse(existing);
+        if (historyList.length > 0) {
+          setLastQuery(historyList[0].query);
+        }
+      }
     } catch (e) {
-      console.error('Error loading favorites:', e);
+      console.error('Error loading initial data:', e);
     }
   }, []);
 
@@ -166,6 +173,7 @@ export default function HomeView() {
       };
 
       window.localStorage.setItem('mediroute_history', JSON.stringify([newItem, ...historyList]));
+      setLastQuery(query);
     } catch (e) {
       console.error('Error saving history:', e);
     }
@@ -317,8 +325,8 @@ export default function HomeView() {
 
                 {/* Specialist */}
                 <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-[#DCE5EE]">
-                  <div className="w-10 h-10 rounded-xl bg-[#EEF3F8] flex items-center justify-center text-[#2563EB] font-bold text-lg">
-                    🩺
+                  <div className="w-10 h-10 rounded-xl bg-[#EEF3F8] flex items-center justify-center text-[#2563EB]">
+                    <Stethoscope size={18} />
                   </div>
                   <div>
                     <div className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Рекомендуемый специалист</div>
@@ -348,7 +356,7 @@ export default function HomeView() {
                           </div>
                           <div>
                             <div className="flex items-center justify-between text-[10px] text-[#94A3B8] border-t border-[#F1F5F9] pt-2">
-                              <span>⭐ {clinic.rating}</span>
+                              <span className="flex items-center gap-0.5"><Star size={10} className="fill-yellow-500 text-yellow-500" /> {clinic.rating}</span>
                               <span className="truncate max-w-[70px]">{clinic.address}</span>
                             </div>
                           </div>
@@ -387,7 +395,7 @@ export default function HomeView() {
                           </div>
                           <div>
                             <div className="flex items-center justify-between text-[10px] text-[#94A3B8] border-t border-[#F1F5F9] pt-2">
-                              <span>⭐ {rehab.rating}</span>
+                              <span className="flex items-center gap-0.5"><Star size={10} className="fill-yellow-500 text-yellow-500" /> {rehab.rating}</span>
                               <span className="truncate max-w-[70px]">{rehab.address}</span>
                             </div>
                           </div>
@@ -434,102 +442,191 @@ export default function HomeView() {
           </div>
         ) : (
           /* Welcome state / Initial query form */
-          <>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.08 }}
-              className="bg-card rounded-2xl border border-[#DCE5EE] shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] p-6"
-            >
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-                  <Sparkles size={16} className="text-white" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-[#172033]">Что вас беспокоит?</div>
-                  <div className="text-xs text-[#64748B]">Опишите ситуацию — подберём специалиста и клинику</div>
-                </div>
-              </div>
-
-              <textarea
-                id="home-description"
-                placeholder="Опишите ваши симптомы или вопрос... Например: болит колено после падения, температура 37.5°C, боль длится 3 дня."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="w-full input-field rounded-xl px-4 py-3.5 text-sm resize-none mb-4 leading-relaxed"
-              />
-
-              {/* Quick actions chips */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.label}
-                    onClick={() => setDescription(action.label)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#64748B] bg-[#EEF3F8] hover:bg-[#E2EBF4] hover:text-[#172033] transition-all border border-transparent hover:border-[#DCE5EE]"
-                  >
-                    <action.icon size={11} />
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* User profile preview info */}
-              {profile && (
-                <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[#EEF3F8]/60 border border-[#DCE5EE] mb-4 text-[11px] text-[#64748B]">
-                  <span>👤 Профиль загружен:</span>
-                  <span className="font-semibold text-[#172033]">{profile.name} ({profile.age} лет, {profile.gender === 'male' ? 'М' : 'Ж'}, {profile.city})</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[#94A3B8]">
-                  {description.length}/1000 символов
-                </span>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleStartConsultation}
-                  disabled={!description.trim()}
-                  id="home-continue-btn"
-                  className={`btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold ${
-                    !description.trim() ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
+          <div className="flex flex-col gap-8">
+            <div className="grid lg:grid-cols-3 gap-6 items-start">
+              {/* Left Column: Input Card */}
+              <div className="lg:col-span-2 flex flex-col gap-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.08 }}
+                  className="bg-card rounded-2xl border border-[#DCE5EE] shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] p-6"
                 >
-                  Начать анализ
-                  <ArrowRight size={15} />
-                </motion.button>
-              </div>
-            </motion.div>
-
-            {/* Feature value cards */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.18 }}
-              className="grid grid-cols-2 gap-4"
-            >
-              {[
-                { label: 'Подбор специалиста', desc: 'Определим, к какому врачу обратиться', color: '#2563EB', bg: '#EEF3F8' },
-                { label: 'Поиск клиники', desc: 'По профилю, рейтингу и расположению', color: '#06B6D4', bg: '#EFF9FB' },
-                { label: 'Реабилитация', desc: 'Центры восстановления после лечения', color: '#059669', bg: '#ECFDF5' },
-                { label: 'Маршрут пациента', desc: 'От первого обращения до записи', color: '#7C3AED', bg: '#F5F3FF' },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="bg-card rounded-xl border border-[#DCE5EE] px-4 py-4 shadow-[0_1px_2px_0_rgb(0,0,0,0.04)]"
-                >
-                  <div
-                    className="text-xs font-bold mb-1"
-                    style={{ color: card.color }}
-                  >
-                    {card.label}
+                  <div className="flex items-center gap-2.5 mb-5">
+                    <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
+                      <Sparkles size={16} className="text-white" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-[#172033]">Что вас беспокоит?</div>
+                      <div className="text-xs text-[#64748B]">Опишите ситуацию — подберём специалиста и клинику</div>
+                    </div>
                   </div>
-                  <div className="text-xs text-[#64748B] leading-relaxed">{card.desc}</div>
-                </div>
-              ))}
-            </motion.div>
-          </>
+
+                  <textarea
+                    id="home-description"
+                    placeholder="Опишите ваши симптомы или вопрос... Например: болит колено после падения, температура 37.5°C, боль длится 3 дня."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                    className="w-full input-field rounded-xl px-4 py-3.5 text-sm resize-none mb-4 leading-relaxed font-sans"
+                  />
+
+                  {/* Quick actions chips */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.label}
+                        onClick={() => setDescription(action.label)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#64748B] bg-[#EEF3F8] hover:bg-[#E2EBF4] hover:text-[#172033] transition-all border border-transparent hover:border-[#DCE5EE]"
+                      >
+                        <action.icon size={11} />
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* User profile preview info */}
+                  {profile && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#EEF3F8]/60 border border-[#DCE5EE] mb-4 text-[11px] text-[#64748B]">
+                      <UserRound size={12} className="text-[#2563EB]" />
+                      <span className="font-medium ml-1">Профиль загружен:</span>
+                      <span className="font-semibold text-[#172033] ml-1">
+                        {profile.name} ({profile.age} лет, {profile.gender === 'male' ? 'М' : 'Ж'}, {profile.city})
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#94A3B8]">
+                      {description.length}/1000 символов
+                    </span>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleStartConsultation}
+                      disabled={!description.trim()}
+                      id="home-continue-btn"
+                      className={`btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold ${
+                        !description.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      Начать анализ
+                      <ArrowRight size={15} />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Right Column: Mini Dashboard widgets */}
+              <div className="lg:col-span-1 flex flex-col gap-4">
+                {/* Last Query Card */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.12 }}
+                  className="bg-card rounded-2xl border border-[#DCE5EE] p-5 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)] flex flex-col justify-between min-h-[120px]"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#64748B] mb-2">
+                      <Clock size={14} className="text-[#2563EB]" />
+                      Последний запрос
+                    </div>
+                    <p className="text-xs text-[#172033] font-medium line-clamp-2 leading-relaxed bg-[#EEF3F8]/50 p-2.5 rounded-xl border border-[#DCE5EE] min-h-[48px]">
+                      {lastQuery ? lastQuery : 'Нет недавних запросов'}
+                    </p>
+                  </div>
+                  {lastQuery && (
+                    <button
+                      onClick={() => setDescription(lastQuery)}
+                      className="text-[10px] font-bold text-[#2563EB] hover:underline self-end mt-2 flex items-center gap-1"
+                    >
+                      Повторить запрос <ArrowRight size={10} />
+                    </button>
+                  )}
+                </motion.div>
+
+                {/* Favorites Quick Card */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.16 }}
+                  className="bg-card rounded-2xl border border-[#DCE5EE] p-5 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)] flex items-center gap-4"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+                    <Heart size={20} className="fill-red-500 text-red-500" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Избранное</div>
+                    <div className="text-base font-bold text-[#172033] mt-0.5">
+                      {favorites.length} {favorites.length === 1 ? 'организация' : favorites.length > 1 && favorites.length < 5 ? 'организации' : 'организаций'}
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Bottom Section: Possibilities of MediRoute */}
+            <div className="flex flex-col gap-5 border-t border-[#DCE5EE] pt-8">
+              <div>
+                <h3 className="text-base font-bold text-[#172033]">Возможности MediRoute</h3>
+                <p className="text-xs text-[#64748B] mt-0.5">Как работает умная медицинская маршрутизация</p>
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="grid sm:grid-cols-2 gap-4"
+              >
+                {[
+                  {
+                    icon: Stethoscope,
+                    title: 'Подбор специалиста',
+                    desc: 'AI помогает определить подходящего врача на основе вашей ситуации.',
+                    color: '#2563EB',
+                    bg: 'rgba(37, 99, 235, 0.08)',
+                  },
+                  {
+                    icon: Building2,
+                    title: 'Поиск клиники',
+                    desc: 'Подбор медицинских учреждений по специализации, отзывам и расположению.',
+                    color: '#06B6D4',
+                    bg: 'rgba(6, 182, 212, 0.08)',
+                  },
+                  {
+                    icon: HeartPulse,
+                    title: 'Реабилитация',
+                    desc: 'Поиск центров восстановления после операций, травм и заболеваний.',
+                    color: '#059669',
+                    bg: 'rgba(5, 150, 105, 0.08)',
+                  },
+                  {
+                    icon: Route,
+                    title: 'Маршрут пациента',
+                    desc: 'Последовательный путь от обращения до записи в медицинское учреждение.',
+                    color: '#7C3AED',
+                    bg: 'rgba(124, 58, 237, 0.08)',
+                  },
+                ].map((card) => (
+                  <motion.div
+                    key={card.title}
+                    whileHover={{ y: -3, scale: 1.01, boxShadow: '0 12px 24px -10px rgba(23, 32, 51, 0.08)' }}
+                    className="bg-card rounded-2xl border border-[#DCE5EE] p-6 flex gap-4 transition-all duration-300"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: card.bg }}
+                    >
+                      <card.icon size={18} style={{ color: card.color }} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-[#172033] mb-1">{card.title}</h4>
+                      <p className="text-[11px] text-[#64748B] leading-relaxed">{card.desc}</p>
+                    </div>
+                  </motion.div>
+              </motion.div>
+            </div>
+          </div>
         )}
       </div>
     </div>

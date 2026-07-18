@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, Sparkles, Calendar, User, ChevronDown, ChevronUp, MapPin, Heart } from 'lucide-react';
+import { History, Sparkles, Calendar, User, ChevronDown, ChevronUp, MapPin, Heart, Stethoscope } from 'lucide-react';
 import clinicsData from '@/data/clinics.json';
 import rehabsData from '@/data/rehabilitation.json';
 
@@ -172,8 +172,8 @@ export default function HistoryView() {
                           <div className="text-xs font-bold text-[#172033]">Назначенный маршрут:</div>
                           
                           {/* Doctor */}
-                          <div className="flex items-center gap-2.5 px-3 py-2 bg-[#EEF3F8] rounded-xl border border-[#DCE5EE]">
-                            <span className="text-sm">🩺</span>
+                          <div className="flex items-center gap-2 px-3 py-2 bg-[#EEF3F8] rounded-xl border border-[#DCE5EE]">
+                            <Stethoscope size={13} className="text-[#2563EB]" />
                             <span className="text-xs font-semibold text-[#172033]">
                               Рекомендованный врач: {item.route.specialist}
                             </span>

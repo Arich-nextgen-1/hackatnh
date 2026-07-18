@@ -143,8 +143,11 @@ export default function DashboardMap({
         <div style="font-family: inherit; padding: 2px;">
           <h4 style="margin: 0 0 4px; font-weight: 700; color: #172033; font-size: 13px;">${m.name}</h4>
           <p style="margin: 0 0 8px; color: #64748B; font-size: 11px; line-height: 1.4;">${m.address}</p>
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-            <span style="font-size: 11px; font-weight: 600; color: #EAB308;">⭐ ${m.rating}</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px;">
+            <span style="font-size: 11px; font-weight: 600; color: #EAB308; display: inline-flex; align-items: center; gap: 3px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#EAB308" stroke="#EAB308" stroke-width="2" style="display: inline-block; vertical-align: middle;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              ${m.rating}
+            </span>
             <button 
               id="map-btn-${m.id}" 
               style="background-color: #EEF3F8; border: 1px solid #DCE5EE; color: #2563EB; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;"

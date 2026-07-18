@@ -24,14 +24,9 @@ function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
 
 function StarRating({ rating }: { rating: number }) {
   return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          size={11}
-          className={s <= Math.round(rating) ? 'star-filled fill-current text-yellow-500' : 'text-[#DCE5EE] fill-current'}
-        />
-      ))}
+    <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-100 rounded-lg px-1.5 py-0.5 text-yellow-700">
+      <Star size={10} className="fill-yellow-500 text-yellow-500" />
+      <span className="text-[10px] font-bold">{rating}</span>
     </div>
   );
 }
@@ -177,17 +172,18 @@ export default function ClinicsView() {
               ['all', 'Все'],
               ['public', 'Гос.'],
               ['private', 'Частные'],
-              ['favorites', 'Избранные ❤️'],
+              ['favorites', 'Избранные'],
             ] as const).map(([val, label]) => (
               <button
                 key={val}
                 onClick={() => setFilter(val)}
-                className={`px-3 py-1.5 rounded-xl font-medium transition-all border ${
+                className={`px-3 py-1.5 rounded-xl font-medium transition-all border flex items-center gap-1 ${
                   filter === val
                     ? 'bg-[#2563EB] text-white border-transparent'
                     : 'bg-card text-[#64748B] border-[#DCE5EE] hover:border-[#B8CADF]'
                 }`}
               >
+                {val === 'favorites' && <Heart size={11} className={filter === val ? 'fill-white text-white' : 'text-red-500 fill-red-500'} />}
                 {label}
               </button>
             ))}
@@ -216,31 +212,30 @@ export default function ClinicsView() {
                     <h3 className="text-sm font-semibold text-[#172033] leading-tight mb-1">
                       {clinic.name}
                     </h3>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                         clinic.type === 'private' ? 'badge-accent' : 'badge-success'
                       }`}>
                         {clinic.type === 'private' ? 'Частная' : 'Государственная'}
                       </span>
                       {clinic.distance !== null && (
-                        <span className="text-[10px] font-medium text-[#64748B]">📍 {clinic.distance} км</span>
+                        <span className="text-[10px] font-medium text-[#64748B] flex items-center gap-0.5">
+                          <MapPin size={10} className="text-[#94A3B8]" /> {clinic.distance} км
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1.5">
+                <div className="flex flex-col items-end gap-1 shrink-0">
                   <button
                     onClick={(e) => toggleFavorite(clinic.id, e)}
-                    className="text-[#94A3B8] hover:text-red-500 transition-colors p-1"
+                    className="text-[#94A3B8] hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-[#EEF3F8] transition-all"
                   >
                     <Heart size={14} className={favorites.includes(clinic.id) ? 'fill-red-500 text-red-500' : ''} />
                   </button>
-                  <div className="text-right shrink-0">
-                    <div className="text-xs font-bold text-[#172033]">{clinic.rating}</div>
-                    <StarRating rating={clinic.rating} />
-                    <div className="text-[10px] text-[#94A3B8] mt-0.5">{clinic.reviewCount} отз.</div>
-                  </div>
+                  <StarRating rating={clinic.rating} />
+                  <div className="text-[10px] text-[#94A3B8]">{clinic.reviewCount} отз.</div>
                 </div>
               </div>
 
@@ -280,8 +275,8 @@ export default function ClinicsView() {
 
       {/* Right: Map */}
       <div className="lg:flex-1 h-80 lg:h-full border-t lg:border-t-0 lg:border-l border-[#DCE5EE] relative bg-[#EEF3F8]">
-        <div className="absolute top-3 left-3 z-10 glass px-3 py-2 rounded-xl text-xs font-medium text-[#172033] shadow-card-sm">
-          📍 Шымкент, Казахстан
+        <div className="absolute top-3 left-3 z-10 glass px-3 py-2 rounded-xl text-xs font-medium text-[#172033] shadow-card-sm flex items-center gap-1.5">
+          <MapPin size={12} className="text-[#2563EB]" /> Шымкент, Казахстан
         </div>
         <DashboardMap
           center={mapCenter}
