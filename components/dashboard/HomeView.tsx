@@ -624,6 +624,7 @@ export default function HomeView() {
                       <p className="text-[11px] text-[#64748B] leading-relaxed">{card.desc}</p>
                     </div>
                   </motion.div>
+                ))}
               </motion.div>
             </div>
           </div>
