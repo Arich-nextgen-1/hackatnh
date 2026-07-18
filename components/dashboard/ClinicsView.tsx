@@ -10,16 +10,13 @@ const DashboardMap = dynamic(() => import('./DashboardMap'), {
   ssr: false,
 });
 
-const SHYMKENT_CENTER_LAT = 42.324;
-const SHYMKENT_CENTER_LNG = 69.598;
-
-function getDistance(lat1: number, lng1: number) {
-  const R = 6371; // Radius of earth in km
-  const dLat = (SHYMKENT_CENTER_LAT - lat1) * Math.PI / 180;
-  const dLng = (SHYMKENT_CENTER_LNG - lng1) * Math.PI / 180;
+function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(SHYMKENT_CENTER_LAT * Math.PI / 180) *
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(1));
@@ -46,6 +43,23 @@ export default function ClinicsView() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
   const [selectedClinic, setSelectedClinic] = useState<any | null>(null);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Request geolocation on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          // Permission denied or unavailable — distance won't be shown
+          setUserCoords(null);
+        },
+        { timeout: 5000 }
+      );
+    }
+  }, []);
 
   // Load favorites
   useEffect(() => {
@@ -69,25 +83,23 @@ export default function ClinicsView() {
   // Filter & Search logic
   const filtered = clinicsData
     .filter((c: any) => {
-      // Search matches
       const query = search.toLowerCase();
       const nameMatch = c.name.toLowerCase().includes(query);
       const addressMatch = c.address.toLowerCase().includes(query);
       const specMatch = c.specializations.some((s: string) => s.toLowerCase().includes(query));
       const searchMatch = nameMatch || addressMatch || specMatch;
-
-      // Filter matches
       if (filter === 'all') return searchMatch;
       if (filter === 'favorites') return searchMatch && favorites.includes(c.id);
       return searchMatch && c.type === filter;
     })
     .map((c: any) => ({
       ...c,
-      distance: getDistance(c.lat, c.lng),
+      distance: userCoords ? getDistance(userCoords.lat, userCoords.lng, c.lat, c.lng) : null,
     }))
     .sort((a, b) => {
       if (sortBy === 'rating') return b.rating - a.rating;
-      return a.distance - b.distance;
+      if (sortBy === 'distance' && a.distance !== null && b.distance !== null) return a.distance - b.distance;
+      return b.rating - a.rating;
     });
 
   // Prepare map markers
@@ -210,7 +222,9 @@ export default function ClinicsView() {
                       }`}>
                         {clinic.type === 'private' ? 'Частная' : 'Государственная'}
                       </span>
-                      <span className="text-[10px] font-medium text-[#64748B]">📍 {clinic.distance} км</span>
+                      {clinic.distance !== null && (
+                        <span className="text-[10px] font-medium text-[#64748B]">📍 {clinic.distance} км</span>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -10,16 +10,13 @@ const DashboardMap = dynamic(() => import('./DashboardMap'), {
   ssr: false,
 });
 
-const SHYMKENT_CENTER_LAT = 42.324;
-const SHYMKENT_CENTER_LNG = 69.598;
-
-function getDistance(lat1: number, lng1: number) {
-  const R = 6371; // Radius of earth in km
-  const dLat = (SHYMKENT_CENTER_LAT - lat1) * Math.PI / 180;
-  const dLng = (SHYMKENT_CENTER_LNG - lng1) * Math.PI / 180;
+function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(SHYMKENT_CENTER_LAT * Math.PI / 180) *
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(1));
@@ -46,6 +43,22 @@ export default function RehabView() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeRehabId, setActiveRehabId] = useState<string | null>(null);
   const [selectedRehab, setSelectedRehab] = useState<any | null>(null);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Request geolocation on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          setUserCoords(null);
+        },
+        { timeout: 5000 }
+      );
+    }
+  }, []);
 
   // Load favorites
   useEffect(() => {
@@ -69,25 +82,23 @@ export default function RehabView() {
   // Filter & Search logic
   const filtered = rehabsData
     .filter((c: any) => {
-      // Search matches
       const query = search.toLowerCase();
       const nameMatch = c.name.toLowerCase().includes(query);
       const addressMatch = c.address.toLowerCase().includes(query);
       const specMatch = (c.programs || []).some((s: string) => s.toLowerCase().includes(query)) || 
                         (c.services || []).some((s: string) => s.toLowerCase().includes(query));
       const searchMatch = nameMatch || addressMatch || specMatch;
-
-      // Filter matches
       if (filter === 'all') return searchMatch;
       return searchMatch && favorites.includes(c.id);
     })
     .map((c: any) => ({
       ...c,
-      distance: getDistance(c.lat, c.lng),
+      distance: userCoords ? getDistance(userCoords.lat, userCoords.lng, c.lat, c.lng) : null,
     }))
     .sort((a, b) => {
       if (sortBy === 'rating') return b.rating - a.rating;
-      return a.distance - b.distance;
+      if (sortBy === 'distance' && a.distance !== null && b.distance !== null) return a.distance - b.distance;
+      return b.rating - a.rating;
     });
 
   // Prepare map markers
@@ -206,7 +217,9 @@ export default function RehabView() {
                       <span className="text-[10px] text-[#64748B] flex items-center gap-1">
                         <Users size={10} /> {rehab.capacity} чел.
                       </span>
-                      <span className="text-[10px] font-medium text-[#64748B]">📍 {rehab.distance} км</span>
+                      {rehab.distance !== null && (
+                        <span className="text-[10px] font-medium text-[#64748B]">📍 {rehab.distance} км</span>
+                      )}
                     </div>
                   </div>
                 </div>

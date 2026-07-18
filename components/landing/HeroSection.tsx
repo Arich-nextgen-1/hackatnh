@@ -116,15 +116,7 @@ export default function HeroSection({ onStart }: HeroSectionProps) {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left */}
           <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full badge-primary text-xs font-semibold mb-6"
-            >
-              <Sparkles size={12} />
-              Powered by AI • Казахстан
-            </motion.div>
+
 
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
@@ -164,14 +156,6 @@ export default function HeroSection({ onStart }: HeroSectionProps) {
               >
                 Начать бесплатно
                 <ArrowRight size={18} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onStart}
-                className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-base font-medium text-[#172033] bg-white border border-[#DCE5EE] hover:border-[#B8CADF] shadow-[0_1px_3px_0_rgb(0,0,0,0.08)] transition-all"
-              >
-                Перейти в приложение
               </motion.button>
             </motion.div>
 

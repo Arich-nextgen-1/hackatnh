@@ -259,6 +259,11 @@ export default function HomeView() {
                       <div className="text-[10px] font-bold text-[#2563EB] mb-1">MediRoute AI</div>
                     )}
                     <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
+                    {msg.role === 'assistant' && (
+                      <p className="text-[10px] text-[#94A3B8] mt-2 pt-2 border-t border-[#EEF3F8] leading-relaxed">
+                        AI не заменяет врача и не ставит диагноз. Рекомендации носят информационный характер.
+                      </p>
+                    )}
                   </div>
                   {msg.role === 'user' && (
                     <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
@@ -305,7 +310,7 @@ export default function HomeView() {
               >
                 <div>
                   <h3 className="text-base font-bold text-[#172033] flex items-center gap-2">
-                    🗺️ Маршрут пациента
+                    Маршрут пациента
                   </h3>
                   <p className="text-xs text-[#64748B] mt-0.5">Рекомендованные специалисты и лечебные учреждения</p>
                 </div>
