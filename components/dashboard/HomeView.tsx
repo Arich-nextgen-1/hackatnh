@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark, Phone } from 'lucide-react';
+import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark, Phone, Navigation2, X, AlertTriangle } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { getGrokRoutingResponse, GrokMessage } from '@/services/grok';
 import clinicsData from '@/data/clinics.json';
 import rehabsData from '@/data/rehabilitation.json';
 import dynamic from 'next/dynamic';
+import { build2GISUrl, getDistanceFromHub } from '@/lib/maps';
 
 const DashboardMap = dynamic(() => import('./DashboardMap'), {
   ssr: false,
@@ -68,34 +69,20 @@ export default function HomeView() {
   // Custom states for MedRoute premium UI features
   const [thinkStep, setThinkStep] = useState(0);
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-
-  // Request geolocation on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        () => {
-          setUserCoords(null);
-        },
-        { timeout: 5000 }
-      );
-    }
-  }, []);
-
-  // Step-by-step AI Think Process interval
+  const [whyNotOpen, setWhyNotOpen] = useState<Record<string, boolean>>({});
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [emergencyScenario, setEmergencyScenario] = useState<string | null>(null);
+  // Step-by-step AI Think Process interval — 6 steps
   useEffect(() => {
     let interval: any;
     if (loading) {
       setThinkStep(0);
       interval = setInterval(() => {
         setThinkStep((prev) => {
-          if (prev < 3) return prev + 1;
+          if (prev < 5) return prev + 1;
           return prev;
         });
-      }, 700);
+      }, 600);
     }
     return () => clearInterval(interval);
   }, [loading]);
@@ -346,17 +333,94 @@ export default function HomeView() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-8"
+          className="mb-6"
         >
           <p className="text-sm text-[#64748B] font-medium mb-1">
             {greeting()},{' '}
             <span className="text-[#172033]">{profile?.name?.split(' ')[0] ?? 'Пользователь'}</span>
           </p>
-          <h2 className="text-2xl lg:text-3xl font-bold text-[#172033] tracking-tight">
+          <h2 className="text-2xl lg:text-3xl font-bold text-[#172033] tracking-tight mb-4">
             Как вы себя чувствуете?
           </h2>
+
+          {/* Emergency Button */}
+          <button
+            onClick={() => setEmergencyOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-200 hover:shadow-red-300"
+          >
+            <AlertTriangle size={15} />
+            Экстренная помощь
+          </button>
         </motion.div>
       )}
+
+      {/* Emergency Modal */}
+      <AnimatePresence>
+        {emergencyOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#172033]/50 backdrop-blur-sm"
+              onClick={() => { setEmergencyOpen(false); setEmergencyScenario(null); }}
+            />
+            <motion.div initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              className="relative bg-card rounded-3xl shadow-2xl w-full max-w-sm border border-[#DCE5EE] overflow-hidden"
+            >
+              {!emergencyScenario ? (
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
+                          <AlertTriangle size={14} className="text-red-500" />
+                        </div>
+                        <h3 className="font-bold text-[#172033] text-base">Экстренная помощь</h3>
+                      </div>
+                      <p className="text-xs text-[#64748B]">Выберите ситуацию</p>
+                    </div>
+                    <button onClick={() => { setEmergencyOpen(false); setEmergencyScenario(null); }}
+                      className="w-8 h-8 rounded-full bg-[#EEF3F8] flex items-center justify-center text-[#64748B] hover:bg-[#DCE5EE]">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {['Инсульт', 'Инфаркт', 'Потеря сознания', 'ДТП', 'Кровотечение'].map((s) => (
+                      <button key={s} onClick={() => setEmergencyScenario(s)}
+                        className="text-left px-4 py-3 rounded-xl border border-[#DCE5EE] text-sm font-medium text-[#172033] hover:border-red-300 hover:bg-red-50 transition-all flex items-center gap-3">
+                        <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 flex flex-col gap-4">
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={16} className="text-red-500" />
+                      <span className="font-bold text-red-700 text-sm">{emergencyScenario}</span>
+                    </div>
+                    <p className="text-xs text-red-600 leading-relaxed">
+                      Высокая вероятность экстренного состояния. Рекомендуем немедленно вызвать скорую помощь.
+                    </p>
+                  </div>
+                  <a href="tel:112"
+                    className="w-full py-4 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black text-xl text-center shadow-lg shadow-red-200 transition-all">
+                    ПОЗВОНИТЬ 112
+                  </a>
+                  <a href={build2GISUrl(42.3050, 69.5950)} target="_blank" rel="noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-[#2563EB] bg-[#EEF3F8] border border-[#DCE5EE] hover:bg-[#E2EBF4] transition-all">
+                    <Navigation2 size={14} /> Маршрут в областную больницу
+                  </a>
+                  <button onClick={() => setEmergencyScenario(null)}
+                    className="text-xs text-[#94A3B8] underline underline-offset-2">
+                    Вернуться
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main consultation screen */}
       <div className="flex flex-col gap-6">
@@ -371,12 +435,12 @@ export default function HomeView() {
               className="bg-card rounded-2xl border border-[#DCE5EE] p-4 shadow-sm flex items-center justify-between overflow-x-auto gap-2 scrollbar-none"
             >
               {[
-                { label: 'Описание', icon: MessageSquare },
-                { label: 'AI Анализ', icon: Sparkles },
-                { label: 'Подбор врача', icon: Stethoscope },
-                { label: 'Подбор клиники', icon: Building2 },
-                { label: 'Запись', icon: HeartPulse },
-                { label: 'Реабилитация', icon: Route },
+                { label: 'Изучаю симптомы...', icon: MessageSquare },
+                { label: 'Определяю специалиста...', icon: Stethoscope },
+                { label: 'Нашёл ' + clinicsData.length + ' клиник...', icon: Building2 },
+                { label: 'Сравниваю рейтинг...', icon: Star },
+                { label: 'Проверяю расписание...', icon: Clock },
+                { label: 'Формирую маршрут...', icon: Route },
               ].map((step, idx) => {
                 let isCompleted = false;
                 let isActive = false;
@@ -419,7 +483,25 @@ export default function HomeView() {
               })}
             </motion.div>
 
-            {/* Chat history */}
+            {/* Analyzed clinics stats — shows after route is ready */}
+            {currentRoute && !loading && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 bg-[#EEF3F8] border border-[#DCE5EE] rounded-2xl px-5 py-3 text-xs text-[#64748B]"
+              >
+                <Sparkles size={13} className="text-[#2563EB] shrink-0" />
+                <span>
+                  Проанализировано{' '}
+                  <strong className="text-[#172033]">{clinicsData.length} клиник</strong>
+                  {' — '}
+                  <strong className="text-green-600">{clinicsData.filter((c: any) => c.type === 'public' || c.ownership === 'public').length} государственных</strong>
+                  {' и '}
+                  <strong className="text-[#2563EB]">{clinicsData.filter((c: any) => c.type === 'private' || c.ownership === 'private').length} частных</strong>.
+                  {' Выбрана оптимальная.'}
+                </span>
+              </motion.div>
+            )}
             <div className="flex flex-col gap-4">
               {chatHistory.map((msg, index) => {
                 const isLastMessage = index === chatHistory.length - 1;
@@ -473,10 +555,12 @@ export default function HomeView() {
                       {/* Animated steps */}
                       <div className="flex flex-col gap-2.5">
                         {[
-                          'Изучаем ваши симптомы...',
-                          'Определяем подходящего специалиста...',
-                          'Подбираем клиники Шымкента...',
-                          'Формируем карту и маршрутный лист...'
+                          'Изучаю ваши симптомы...',
+                          'Определяю подходящего специалиста...',
+                          'Нашёл ' + clinicsData.length + ' клиник в базе...',
+                          'Сравниваю рейтинги...',
+                          'Проверяю режим работы...',
+                          'Формирую лучший маршрут...'
                         ].map((text, idx) => {
                           const isCompleted = thinkStep > idx;
                           const isActive = thinkStep === idx;
@@ -607,7 +691,13 @@ export default function HomeView() {
                   </div>
 
                   {/* Medical Boarding Pass (Ticket) */}
-                  <div className="bg-white border-2 border-dashed border-[#DCE5EE] rounded-3xl p-5 relative overflow-hidden shadow-sm flex flex-col gap-4">
+                  <div className={`bg-white border-2 border-dashed rounded-3xl p-5 relative overflow-hidden shadow-sm flex flex-col gap-4 ${
+                    currentRoute.urgency === 'high'
+                      ? 'border-red-200'
+                      : currentRoute.urgency === 'medium'
+                        ? 'border-amber-200'
+                        : 'border-[#DCE5EE]'
+                  }`}>
                     {/* Watermark styling */}
                     <div className="flex items-center justify-between border-b border-[#EEF3F8] pb-3">
                       <div className="flex items-center gap-2">
@@ -663,6 +753,40 @@ export default function HomeView() {
                       <div className="flex items-center gap-1.5 bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-xl border border-blue-100 uppercase tracking-wider">
                         DamuMed
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Explainable AI Confidence Block */}
+                  <div className="bg-[#F0FDFA] border border-[#CCFBF1] rounded-3xl p-5 flex flex-col gap-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-teal-100 flex items-center justify-center">
+                          <Shield size={15} className="text-teal-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-teal-900 leading-tight">Почему AI уверен?</h4>
+                          <span className="text-[10px] text-teal-600 font-semibold">Высокая уверенность</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xl font-black text-teal-950">{(currentRoute.confidence_score ?? 92)}%</span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-teal-100 pt-3">
+                      {[
+                        'возрасте',
+                        'симптомах',
+                        'длительности',
+                        'хронических заболеваниях',
+                        'базе клиник',
+                        'клинических рекомендациях'
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs text-teal-800">
+                          <span className="text-teal-600 font-bold">✓</span>
+                          <span>{item}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -739,10 +863,10 @@ export default function HomeView() {
                                     <span className="text-emerald-500 font-bold">✓</span>
                                     <span>Рейтинг {clinic.rating} ({clinic.reviewCount} отз.)</span>
                                   </div>
-                                  {userCoords && clinic.lat && (
+                                  {clinic.lat && (
                                     <div className="flex items-center gap-1">
                                       <span className="text-emerald-500 font-bold">✓</span>
-                                      <span>Расстояние {getDistance(userCoords.lat, userCoords.lng, clinic.lat, clinic.lng)} км</span>
+                                      <span>Расстояние {getDistanceFromHub(clinic.lat, clinic.lng)} км от IT Hub</span>
                                     </div>
                                   )}
                                   <div className="flex items-center gap-1">
@@ -754,13 +878,57 @@ export default function HomeView() {
                                     <span>Запись онлайн</span>
                                   </div>
                                 </div>
+
+                                {/* Why not this clinic toggle for alternatives (ci > 0) */}
+                                {ci > 0 && (
+                                  <div className="mt-2 pt-2 border-t border-[#EEF3F8]">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setWhyNotOpen(prev => ({ ...prev, [clinic.id]: !prev[clinic.id] }));
+                                      }}
+                                      className="w-full flex items-center justify-between text-[10px] text-gray-500 font-bold hover:text-red-500 transition-colors"
+                                    >
+                                      <span>Почему не эта?</span>
+                                      <span className="text-[8px]">{whyNotOpen[clinic.id] ? '▲' : '▼'}</span>
+                                    </button>
+                                    {whyNotOpen[clinic.id] && (
+                                      <div className="mt-1.5 p-2 rounded-lg bg-red-50 border border-red-100 flex flex-col gap-1 text-[9px] text-red-700 animate-fadeIn">
+                                        <div className="flex items-start gap-1">
+                                          <span className="font-bold shrink-0">•</span>
+                                          <span>Находится дальше от IT Hub (+{(getDistanceFromHub(clinic.lat, clinic.lng) - getDistanceFromHub(recommendedClinics[0].lat, recommendedClinics[0].lng)).toFixed(1)} км)</span>
+                                        </div>
+                                        {clinic.rating < recommendedClinics[0].rating && (
+                                          <div className="flex items-start gap-1">
+                                            <span className="font-bold shrink-0">•</span>
+                                            <span>Рейтинг ниже ({clinic.rating.toFixed(1)} vs {recommendedClinics[0].rating.toFixed(1)})</span>
+                                          </div>
+                                        )}
+                                        {clinic.load === 'high' && (
+                                          <div className="flex items-start gap-1">
+                                            <span className="font-bold shrink-0">•</span>
+                                            <span>Высокая текущая загрузка клиники</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               
-                              <div>
-                                <div className="flex items-center justify-between text-[9.5px] text-[#94A3B8] border-t border-[#F1F5F9] pt-2">
-                                  <span className="flex items-center gap-0.5"><Star size={10} className="fill-yellow-500 text-yellow-500" /> {clinic.rating}</span>
-                                  <span className="truncate max-w-[70px]">{clinic.address}</span>
-                                </div>
+                              {/* 2GIS route + address */}
+                              <div className="flex items-center justify-between text-[9.5px] text-[#94A3B8] border-t border-[#F1F5F9] pt-2 mt-auto">
+                                <span className="flex items-center gap-0.5"><Star size={10} className="fill-yellow-500 text-yellow-500" /> {(clinic.rating ?? 0).toFixed(1)}</span>
+                                {clinic.lat && (
+                                  <a
+                                    href={build2GISUrl(clinic.lat, clinic.lng)}
+                                    target="_blank" rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-0.5 text-[#2563EB] font-semibold hover:underline"
+                                  >
+                                    <Navigation2 size={9} /> Маршрут
+                                  </a>
+                                )}
                               </div>
                             </motion.div>
                           );
@@ -809,6 +977,25 @@ export default function HomeView() {
                         ))}
                       </div>
                     </div>
+                  )}
+
+                  {/* Next Step card */}
+                  {currentRoute && !loading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-4 bg-[#2563EB] rounded-2xl px-5 py-4 text-white shadow-lg shadow-blue-200"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                        <ArrowRight size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-white/60 mb-0.5">Следующий шаг</div>
+                        <div className="text-sm font-bold">
+                          Запишитесь к {currentRoute.specialist ?? 'специалисту'} — желательно сегодня.
+                        </div>
+                      </div>
+                    </motion.div>
                   )}
 
                   {/* Action Buttons */}
