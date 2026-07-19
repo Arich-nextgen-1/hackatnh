@@ -57,6 +57,14 @@ function TypewriterText({ text, speed = 25 }: { text: string; speed?: number }) 
   return <p className="text-sm leading-relaxed whitespace-pre-line">{displayed}</p>;
 }
 
+function cleanUndefined(text: any): string {
+  if (!text) return '';
+  return String(text)
+    .replace(/undefined/gi, '')
+    .replace(/null/gi, '')
+    .trim();
+}
+
 export default function HomeView() {
   const { profile } = useProfile();
   const router = useRouter();
@@ -159,13 +167,13 @@ export default function HomeView() {
     };
   };
 
-  // Parse `<route>...</route>` from message
   const parseRouteContent = (content: string) => {
-    // Globally remove literal word 'undefined' (case-insensitive) that AI might append
+    // Globally remove literal word 'undefined' and 'null' (case-insensitive)
     let sanitizedContent = content;
     if (typeof sanitizedContent === 'string') {
       sanitizedContent = sanitizedContent
-        .replace(/\bundefined\b/gi, '')
+        .replace(/undefined/gi, '')
+        .replace(/null/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
     }
@@ -482,9 +490,9 @@ export default function HomeView() {
                       )}
                       
                       {msg.role === 'assistant' && isLastMessage && !loading ? (
-                        <TypewriterText text={msg.content} />
+                        <TypewriterText text={cleanUndefined(msg.content)} />
                       ) : (
-                        <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-line">{cleanUndefined(msg.content)}</p>
                       )}
 
                       {msg.role === 'assistant' && (

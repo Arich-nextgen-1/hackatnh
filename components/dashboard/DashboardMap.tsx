@@ -151,7 +151,7 @@ export default function DashboardMap({
       const marker = L.marker([m.lat, m.lng], { icon }).addTo(mapRef.current);
 
       // Popup HTML
-      const twoGisUrl = `https://2gis.kz/shymkent/routeSearch/rsType/car/from/69.5901,42.3417/to/${m.lng},${m.lat}`;
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=42.3417,69.5901&destination=${m.lat},${m.lng}&travelmode=driving`;
       const popupHtml = `
         <div style="padding:12px 14px;min-width:200px;">
           <h4 style="margin:0 0 4px;font-weight:700;color:#172033;font-size:13px;line-height:1.3;">${m.name}</h4>
@@ -160,9 +160,9 @@ export default function DashboardMap({
             <span style="font-size:11px;font-weight:700;color:#f59e0b;">&#9733; ${m.rating}</span>
             <span style="font-size:10px;color:#22c55e;font-weight:600;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:3px;vertical-align:middle;"></span>Открыто</span>
           </div>
-          <a href="${twoGisUrl}" target="_blank" rel="noreferrer"
+          <a href="${googleMapsUrl}" target="_blank" rel="noreferrer"
             style="display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:6px 0;background:#2563EB;color:white;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none;">
-            Построить маршрут
+            Google Maps
           </a>
         </div>
       `;
