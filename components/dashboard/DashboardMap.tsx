@@ -121,21 +121,22 @@ export default function DashboardMap({
     markerInstancesRef.current = {};
 
     // Custom Icon Definitions
-    const createCustomIcon = (color: string) => {
+    const createCustomIcon = (color: string, isActive: boolean) => {
+      const shadowColor = color === '#10B981' ? 'rgba(16, 185, 129, 0.6)' : color === '#06B6D4' ? 'rgba(6, 182, 212, 0.6)' : 'rgba(37, 99, 235, 0.6)';
+      const activeStyle = isActive 
+        ? `width: 18px; height: 18px; border: 3px solid white; box-shadow: 0 0 12px ${shadowColor}, 0 0 0 6px ${shadowColor}; animation: marker-bounce 0.8s infinite ease-in-out; z-index: 1000;` 
+        : `width: 12px; height: 12px; border: 2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.3);`;
       return L.divIcon({
-        html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.3);"></div>`,
-        className: 'custom-leaflet-marker',
-        iconSize: [12, 12],
-        iconAnchor: [6, 6],
+        html: `<div style="background-color: ${color}; border-radius: 50%; ${activeStyle} transition: all 0.2s ease;"></div>`,
+        className: `custom-leaflet-marker ${isActive ? 'active-marker' : ''}`,
+        iconSize: isActive ? [18, 18] : [12, 12],
+        iconAnchor: isActive ? [9, 9] : [6, 6],
       });
     };
 
-    const blueIcon = createCustomIcon('#2563EB'); // public clinic
-    const greenIcon = createCustomIcon('#10B981'); // private clinic
-    const cyanIcon = createCustomIcon('#06B6D4'); // rehab center
-
     markers.forEach((m) => {
-      const icon = m.type === 'rehab' ? cyanIcon : m.type === 'private' ? greenIcon : blueIcon;
+      const isActive = m.id === activeMarkerId;
+      const icon = createCustomIcon(m.type === 'rehab' ? '#06B6D4' : m.type === 'private' ? '#10B981' : '#2563EB', isActive);
       const marker = L.marker([m.lat, m.lng], { icon }).addTo(mapRef.current);
 
       // Popup HTML content with modern styling matching MedRoute UI
@@ -170,7 +171,7 @@ export default function DashboardMap({
 
       markerInstancesRef.current[m.id] = marker;
     });
-  }, [loaded, markers]);
+  }, [loaded, markers, activeMarkerId]);
 
   // Center on active marker or coordinates
   useEffect(() => {
@@ -204,6 +205,12 @@ export default function DashboardMap({
 
   return (
     <div className="w-full h-full relative" style={{ minHeight: '200px' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes marker-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+      `}} />
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#EEF3F8] z-20">
           <div className="flex flex-col items-center gap-2">

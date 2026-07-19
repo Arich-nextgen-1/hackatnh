@@ -66,6 +66,24 @@ export default function ClinicsView() {
     }
   }, []);
 
+  // Auto-focus on first result when search query changes
+  useEffect(() => {
+    if (search.trim()) {
+      const query = search.toLowerCase();
+      const firstMatch = clinicsData.find((c: any) => {
+        const nameMatch = c.name.toLowerCase().includes(query);
+        const addressMatch = c.address.toLowerCase().includes(query);
+        const specMatch = c.specializations.some((s: string) => s.toLowerCase().includes(query));
+        return nameMatch || addressMatch || specMatch;
+      });
+      if (firstMatch) {
+        setActiveClinicId(firstMatch.id);
+      }
+    } else {
+      setActiveClinicId(null);
+    }
+  }, [search]);
+
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = favorites.includes(id)
@@ -190,17 +208,17 @@ export default function ClinicsView() {
           </div>
         </div>
 
-        {/* Cards grid */}
         <div className="grid sm:grid-cols-2 gap-4">
           {filtered.map((clinic: any, i) => (
             <motion.div
               key={clinic.id}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -5, scale: 1.02, transition: { duration: 0.2 } }}
               transition={{ duration: 0.3, delay: i * 0.04 }}
               onClick={() => setActiveClinicId(clinic.id)}
-              className={`bg-card rounded-2xl border p-5 shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] card-hover cursor-pointer transition-all ${
-                activeClinicId === clinic.id ? 'border-[#2563EB] bg-[#2563EB]/5' : 'border-[#DCE5EE]'
+              className={`bg-card rounded-2xl border p-5 shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] cursor-pointer transition-all ${
+                activeClinicId === clinic.id ? 'border-[#2563EB] bg-[#2563EB]/5 shadow-md' : 'border-[#DCE5EE]'
               }`}
             >
               <div className="flex items-start justify-between gap-3 mb-3">

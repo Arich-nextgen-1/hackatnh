@@ -2,18 +2,42 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Save, Check } from 'lucide-react';
+import { User, Save, Check, Clock, ArrowRight, Stethoscope } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { UserProfile } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 export default function ProfileView() {
   const { profile, updateProfile } = useProfile();
+  const router = useRouter();
   const [form, setForm] = useState<Partial<UserProfile>>({});
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (profile) setForm(profile);
   }, [profile]);
+
+  // Load last consultation preview
+  const [lastConsult, setLastConsult] = useState<any | null>(null);
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem('mediroute_history');
+      if (stored) {
+        const historyList = JSON.parse(stored);
+        if (historyList.length > 0) {
+          setLastConsult(historyList[0]);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleOpenLastConsult = () => {
+    if (!lastConsult) return;
+    window.localStorage.setItem('mediroute_active_restore', JSON.stringify(lastConsult));
+    router.push('/dashboard');
+  };
 
   const update = (key: keyof UserProfile, value: string | number) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -189,6 +213,37 @@ export default function ProfileView() {
             </div>
           </div>
         </motion.div>
+
+        {/* Последняя консультация Card */}
+        {lastConsult && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="bg-card rounded-2xl border border-[#DCE5EE] shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] p-6"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Clock size={16} className="text-[#2563EB]" />
+              <h3 className="text-sm font-semibold text-[#172033]">Последняя консультация</h3>
+            </div>
+            
+            <div className="bg-[#F8FAFC] border border-[#DCE5EE] p-4 rounded-xl flex flex-col gap-2">
+              <div className="flex items-center justify-between text-[10px] text-[#94A3B8] font-bold">
+                <span>{lastConsult.date}</span>
+                <span className="badge-primary px-2 py-0.5 rounded-full">{lastConsult.route?.specialist ?? 'Консультация'}</span>
+              </div>
+              <p className="text-xs font-bold text-[#172033] line-clamp-1">{lastConsult.query}</p>
+              <p className="text-[11px] text-[#64748B] line-clamp-2 leading-relaxed">{lastConsult.response}</p>
+            </div>
+
+            <button
+              onClick={handleOpenLastConsult}
+              className="mt-4 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-[#2563EB] bg-[#EEF3F8] hover:bg-[#E2EBF4] border border-[#DCE5EE] hover:border-[#B8CADF] transition-all"
+            >
+              Открыть в чате <ArrowRight size={13} />
+            </button>
+          </motion.div>
+        )}
 
         {/* Meta info */}
         <motion.div

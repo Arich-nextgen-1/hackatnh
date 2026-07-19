@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, Sparkles, Calendar, User, ChevronDown, ChevronUp, MapPin, Heart, Stethoscope } from 'lucide-react';
+import { History, Sparkles, Calendar, User, ChevronDown, ChevronUp, MapPin, Heart, Stethoscope, ArrowRight, HeartPulse } from 'lucide-react';
 import clinicsData from '@/data/clinics.json';
 import rehabsData from '@/data/rehabilitation.json';
+import { useRouter } from 'next/navigation';
 
 interface HistoryItem {
   id: string;
@@ -16,12 +17,15 @@ interface HistoryItem {
     rehab_needed: boolean;
     clinics: string[];
     rehab_centers?: string[];
+    reasons?: string[];
+    urgency?: string;
   };
 }
 
 export default function HistoryView() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const router = useRouter();
 
   // Load history from LocalStorage
   useEffect(() => {
@@ -155,7 +159,7 @@ export default function HistoryView() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.25, ease: 'easeInOut' }}
                   >
-                    <div className="px-5 pb-5 pt-3 border-t border-[#EEF3F8] flex flex-col gap-4">
+                    <div className="px-5 pb-5 pt-3 border-t border-[#EEF3F8] flex flex-col gap-5">
                       {/* AI Response Text */}
                       <div className="bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-4">
                         <div className="text-xs font-bold text-[#2563EB] mb-1.5 flex items-center gap-1.5">
@@ -166,46 +170,77 @@ export default function HistoryView() {
                         </p>
                       </div>
 
-                      {/* Patient Route section */}
+                      {/* Patient Route section structured as Boarding Pass */}
                       {item.route && (
-                        <div className="flex flex-col gap-2.5">
-                          <div className="text-xs font-bold text-[#172033]">Назначенный маршрут:</div>
-                          
-                          {/* Doctor */}
-                          <div className="flex items-center gap-2 px-3 py-2 bg-[#EEF3F8] rounded-xl border border-[#DCE5EE]">
-                            <Stethoscope size={13} className="text-[#2563EB]" />
-                            <span className="text-xs font-semibold text-[#172033]">
-                              Рекомендованный врач: {item.route.specialist}
-                            </span>
+                        <div className="flex flex-col gap-4">
+                          <div className="bg-white border-2 border-dashed border-[#DCE5EE] rounded-2xl p-4 flex flex-col gap-3">
+                            <div className="flex items-center justify-between border-b border-[#EEF3F8] pb-2">
+                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Маршрутный Лист</span>
+                              <span className="text-[9px] font-mono text-gray-400 uppercase tracking-widest bg-[#EEF3F8] px-2 py-0.5 rounded">MEDROUTE AI</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 text-[11px]">
+                              <div>
+                                <div className="text-[8.5px] text-gray-400 font-bold uppercase">Специалист</div>
+                                <div className="font-bold text-blue-600 mt-0.5">{item.route.specialist}</div>
+                              </div>
+                              <div>
+                                <div className="text-[8.5px] text-gray-400 font-bold uppercase">Необходимость реабилитации</div>
+                                <div className="font-semibold text-gray-700 mt-0.5">{item.route.rehab_needed ? 'Да' : 'Нет'}</div>
+                              </div>
+                            </div>
+
+                            {/* Decision Reasons */}
+                            {item.route.reasons && item.route.reasons.length > 0 && (
+                              <div className="bg-[#F8FAFC] rounded-xl p-3 border border-[#DCE5EE] text-[11px] text-gray-600 flex flex-col gap-1">
+                                {item.route.reasons.map((reason: string, ri: number) => (
+                                  <div key={ri} className="flex items-start gap-1">
+                                    <span className="text-blue-500 font-bold shrink-0">✓</span>
+                                    <span>{reason}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Recommended clinics */}
+                            {item.route.clinics && item.route.clinics.length > 0 && (
+                              <div className="flex flex-col gap-1 border-t border-[#EEF3F8] pt-2">
+                                <span className="text-[8.5px] font-bold text-gray-400 uppercase tracking-wider">Рекомендуемые учреждения:</span>
+                                {item.route.clinics.map((cId) => (
+                                  <div key={cId} className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold">
+                                    <MapPin size={11} className="text-[#2563EB]" />
+                                    <span>{getClinicName(cId)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Recommended rehab centers */}
+                            {item.route.rehab_needed && item.route.rehab_centers && item.route.rehab_centers.length > 0 && (
+                              <div className="flex flex-col gap-1 border-t border-[#EEF3F8] pt-2">
+                                <span className="text-[8.5px] font-bold text-cyan-600 uppercase tracking-wider">Реабилитационные центры:</span>
+                                {item.route.rehab_centers.map((rId) => (
+                                  <div key={rId} className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold">
+                                    <MapPin size={11} className="text-[#0891B2]" />
+                                    <span>{getRehabName(rId)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-
-                          {/* Clinics list */}
-                          {item.route.clinics && item.route.clinics.length > 0 && (
-                            <div className="flex flex-col gap-1.5 pl-1">
-                              <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Клиники:</span>
-                              {item.route.clinics.map((cId) => (
-                                <div key={cId} className="flex items-center gap-2 text-xs text-[#64748B]">
-                                  <MapPin size={11} className="text-[#94A3B8]" />
-                                  <span>{getClinicName(cId)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Rehab list */}
-                          {item.route.rehab_needed && item.route.rehab_centers && item.route.rehab_centers.length > 0 && (
-                            <div className="flex flex-col gap-1.5 pl-1 border-t border-[#F1F5F9] pt-2 mt-1">
-                              <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Реабилитационные центры:</span>
-                              {item.route.rehab_centers.map((rId) => (
-                                <div key={rId} className="flex items-center gap-2 text-xs text-[#64748B]">
-                                  <MapPin size={11} className="text-[#94A3B8]" />
-                                  <span>{getRehabName(rId)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       )}
+
+                      {/* Restore Consultation Button */}
+                      <button
+                        onClick={() => {
+                          window.localStorage.setItem('mediroute_active_restore', JSON.stringify(item));
+                          router.push('/dashboard');
+                        }}
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-[#2563EB] bg-[#EEF3F8] hover:bg-[#E2EBF4] border border-[#DCE5EE] hover:border-[#B8CADF] transition-all"
+                      >
+                        Восстановить консультацию в чате <ArrowRight size={13} />
+                      </button>
                     </div>
                   </motion.div>
                 )}
