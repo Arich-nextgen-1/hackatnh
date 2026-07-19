@@ -64,12 +64,47 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
   const twoGisUrl = build2GISUrl(center.lat, center.lng);
   const loadInfo = center.load ? getLoadInfo(center.load) : null;
   const programs = center.programs ?? center.services ?? [];
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 450);
+    return () => clearTimeout(timer);
+  }, [center.id]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex">
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-[#172033]/40 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+          className="relative ml-auto w-full max-w-md bg-card h-full p-6 shadow-2xl flex flex-col gap-6"
+        >
+          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="mt-auto h-12 bg-gray-100 rounded-2xl animate-pulse" />
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -215,6 +250,7 @@ export default function RehabView() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeRehabId, setActiveRehabId] = useState<string | null>(null);
   const [drawerRehab, setDrawerRehab] = useState<RehabCenter | null>(null);
+  const [hoveredRehabId, setHoveredRehabId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -284,7 +320,7 @@ export default function RehabView() {
           <div>
             <h2 className="text-xl font-bold text-[#172033]">Реабилитационные центры</h2>
             <p className="text-xs text-[#64748B] mt-0.5">
-              <span className="font-semibold text-[#0891B2]">{filtered.length}</span> из {rehabsData.length} центров • Шымкент
+              Реабилитационные центры Шымкента
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -332,6 +368,8 @@ export default function RehabView() {
               whileHover={{ y: -5, scale: 1.015, transition: { duration: 0.18 } }}
               transition={{ duration: 0.25, delay: i * 0.04 }}
               onClick={() => setActiveRehabId(rehab.id)}
+              onMouseEnter={() => setHoveredRehabId(rehab.id)}
+              onMouseLeave={() => setHoveredRehabId(null)}
               className={`bg-card rounded-2xl border p-4 shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] cursor-pointer transition-all flex flex-col gap-3 ${
                 activeRehabId === rehab.id
                   ? 'border-[#0891B2] shadow-[0_0_0_3px_rgba(6,182,212,0.12)]'
@@ -409,6 +447,11 @@ export default function RehabView() {
             <div className="col-span-2 text-center py-12 text-[#94A3B8] text-sm">Центры не найдены</div>
           )}
         </div>
+
+        {/* Database last updated footer */}
+        <div className="text-[10px] text-gray-400 mt-6 pt-4 border-t border-[#EEF3F8] text-center">
+          Данные клиник обновлены: Июль 2026
+        </div>
       </div>
 
       {/* Right: Map */}
@@ -425,6 +468,7 @@ export default function RehabView() {
           center={mapCenter}
           markers={mapMarkers}
           activeMarkerId={activeRehabId}
+          hoveredMarkerId={hoveredRehabId}
           onSelectMarker={(id) => {
             setActiveRehabId(id);
             const found = enriched.find((c) => c.id === id);

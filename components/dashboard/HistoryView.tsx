@@ -2,57 +2,64 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, Sparkles, Calendar, User, ChevronDown, ChevronUp, MapPin, Heart, Stethoscope, ArrowRight, HeartPulse } from 'lucide-react';
-import clinicsData from '@/data/clinics.json';
-import rehabsData from '@/data/rehabilitation.json';
+import {
+  History, Sparkles, Calendar, MapPin, Stethoscope,
+  ArrowRight, ChevronDown, ChevronUp, Trash2
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-interface HistoryItem {
-  id: string;
+interface SavedRoute {
+  route: any;
   date: string;
-  query: string;
-  response: string;
-  route: {
-    specialist: string;
-    rehab_needed: boolean;
-    clinics: string[];
-    rehab_centers?: string[];
-    reasons?: string[];
-    urgency?: string;
-  };
+  query?: string;
+  // legacy fields
+  id?: string;
+  specialist?: string;
+  urgency?: string;
+}
+
+function UrgencyBadge({ urgency }: { urgency?: string }) {
+  if (urgency === 'high' || urgency === 'Срочно')
+    return <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">🔴 Срочно</span>;
+  if (urgency === 'medium' || urgency === 'Желательно сегодня')
+    return <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">🟡 Желательно сегодня</span>;
+  return <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">🟢 Планово</span>;
+}
+
+function formatDate(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return iso;
+  }
 }
 
 export default function HistoryView() {
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [history, setHistory] = useState<SavedRoute[]>([]);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const router = useRouter();
 
-  // Load history from LocalStorage
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem('mediroute_history');
       if (stored) {
-        setHistory(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) setHistory(parsed);
       }
     } catch (e) {
       console.error('Error loading history:', e);
     }
   }, []);
 
-  const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
+  const deleteItem = (idx: number) => {
+    const updated = history.filter((_, i) => i !== idx);
+    setHistory(updated);
+    localStorage.setItem('mediroute_history', JSON.stringify(updated));
+    if (expandedIdx === idx) setExpandedIdx(null);
   };
 
-  const getClinicName = (id: string) => {
-    const found = clinicsData.find((c) => c.id === id);
-    return found ? found.name : id;
-  };
-
-  const getRehabName = (id: string) => {
-    const found = rehabsData.find((r) => r.id === id);
-    return found ? found.name : id;
-  };
-
+  /* ─── Empty State ─────────────────────── */
   if (history.length === 0) {
     return (
       <div className="p-6 lg:p-8 max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
@@ -62,7 +69,6 @@ export default function HistoryView() {
           transition={{ duration: 0.4 }}
           className="w-full bg-card rounded-2xl border border-[#DCE5EE] shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] p-10 text-center"
         >
-          {/* Icon */}
           <div className="relative inline-flex mb-6">
             <div className="w-16 h-16 rounded-2xl bg-[#EEF3F8] border border-[#DCE5EE] flex items-center justify-center">
               <History size={28} className="text-[#94A3B8]" />
@@ -72,85 +78,80 @@ export default function HistoryView() {
             </div>
           </div>
 
-          <h2 className="text-xl font-bold text-[#172033] mb-2.5">
-            История пуста
-          </h2>
-          <p className="text-sm text-[#64748B] leading-relaxed mb-6 max-w-sm mx-auto">
-            Ваши консультации с AI и результаты маршрутизации будут отображаться
-            здесь после первой AI-консультации на Главной странице.
+          <h2 className="text-xl font-bold text-[#172033] mb-2.5">История пуста</h2>
+          <p className="text-sm text-[#64748B] leading-relaxed mb-8 max-w-sm mx-auto">
+            После завершения консультации нажмите <strong>«Сохранить маршрут»</strong> — и он появится здесь.
           </p>
 
-          {/* Decorative placeholder items */}
-          <div className="flex flex-col gap-2.5 mb-6">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#EEF3F8] border border-[#DCE5EE]"
-                style={{ opacity: 1 - i * 0.2 }}
-              >
-                <div className="w-8 h-8 rounded-lg bg-[#DCE5EE] animate-pulse" />
-                <div className="flex-1 text-left">
-                  <div className="h-2.5 w-3/4 rounded bg-[#DCE5EE] mb-1.5 animate-pulse" />
-                  <div className="h-2 w-1/2 rounded bg-[#E8EFF5] animate-pulse" />
-                </div>
-                <div className="h-2 w-12 rounded bg-[#DCE5EE] animate-pulse" />
-              </div>
-            ))}
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#EEF3F8] border border-[#DCE5EE]">
-            <div className="w-2 h-2 rounded-full bg-[#2563EB]" />
-            <span className="text-xs font-medium text-[#64748B]">
-              История активируется при получении рекомендаций
-            </span>
-          </div>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-md shadow-blue-200"
+          >
+            <Stethoscope size={15} /> Начать консультацию
+          </button>
         </motion.div>
       </div>
     );
   }
 
+  /* ─── List ─────────────────────────────── */
   return (
     <div className="p-6 lg:p-8 max-w-2xl mx-auto flex flex-col gap-5">
-      <div>
-        <h2 className="text-2xl font-bold text-[#172033] mb-1.5">История консультаций</h2>
-        <p className="text-sm text-[#64748B]">
-          Здесь хранятся все ваши завершённые маршруты пациента и рекомендации.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-[#172033]">История маршрутов</h2>
+          <p className="text-sm text-[#64748B] mt-0.5">{history.length} сохранённых консультаций</p>
+        </div>
+        <div className="text-[10px] text-[#94A3B8]">Данные клиник обновлены: Июль 2026</div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {history.map((item, i) => {
-          const isExpanded = expandedId === item.id;
+          const route = item.route ?? item; // handle both formats
+          const specialist = route.specialist ?? item.specialist ?? 'Специалист';
+          const urgency = route.urgency ?? item.urgency;
+          const query = item.query ?? route.query ?? 'Консультация';
+          const topClinic = route.recommended_clinics?.[0]?.name ?? null;
+          const isExpanded = expandedIdx === i;
+
           return (
             <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 12 }}
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
+              transition={{ duration: 0.3, delay: i * 0.04 }}
               className="bg-card border border-[#DCE5EE] rounded-2xl shadow-sm overflow-hidden"
             >
-              {/* Header block click to toggle expand */}
+              {/* Card header */}
               <div
-                onClick={() => toggleExpand(item.id)}
-                className="flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-[#EEF3F8]/30 transition-all select-none"
+                onClick={() => setExpandedIdx(isExpanded ? null : i)}
+                className="flex items-start gap-4 p-5 cursor-pointer hover:bg-[#EEF3F8]/30 transition-all select-none"
               >
-                <div className="flex-1 min-w-0 pr-4">
-                  <div className="flex items-center gap-2 text-[10px] text-[#94A3B8] font-semibold mb-1">
-                    <Calendar size={11} /> {item.date}
-                    <span className="badge-primary px-2 py-0.5 rounded-full text-[9px]">
-                      {item.route?.specialist || 'Консультация'}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-bold text-[#172033] truncate">
-                    {item.query}
-                  </h3>
+                {/* Icon */}
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#EEF3F8] to-[#E2EBF4] border border-[#DCE5EE] flex items-center justify-center shrink-0">
+                  <Stethoscope size={18} className="text-[#2563EB]" />
                 </div>
-                <div className="text-[#94A3B8]">
+
+                {/* Main info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className="text-base font-bold text-[#172033]">{specialist}</span>
+                    <UrgencyBadge urgency={urgency} />
+                  </div>
+                  <p className="text-sm text-[#64748B] truncate">{query}</p>
+                  <div className="flex items-center gap-1 text-[11px] text-[#94A3B8] mt-1.5">
+                    <Calendar size={11} />
+                    {formatDate(item.date)}
+                  </div>
+                </div>
+
+                {/* Expand toggle */}
+                <div className="text-[#94A3B8] shrink-0">
                   {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
               </div>
 
-              {/* Expander content */}
+              {/* Expanded details */}
               <AnimatePresence initial={false}>
                 {isExpanded && (
                   <motion.div
@@ -159,88 +160,50 @@ export default function HistoryView() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.25, ease: 'easeInOut' }}
                   >
-                    <div className="px-5 pb-5 pt-3 border-t border-[#EEF3F8] flex flex-col gap-5">
-                      {/* AI Response Text */}
-                      <div className="bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-4">
-                        <div className="text-xs font-bold text-[#2563EB] mb-1.5 flex items-center gap-1.5">
-                          <Sparkles size={12} /> Ответ AI
-                        </div>
-                        <p className="text-xs text-[#64748B] leading-relaxed whitespace-pre-line">
-                          {item.response}
-                        </p>
-                      </div>
+                    <div className="px-5 pb-5 pt-1 border-t border-[#EEF3F8] flex flex-col gap-4">
 
-                      {/* Patient Route section structured as Boarding Pass */}
-                      {item.route && (
-                        <div className="flex flex-col gap-4">
-                          <div className="bg-white border-2 border-dashed border-[#DCE5EE] rounded-2xl p-4 flex flex-col gap-3">
-                            <div className="flex items-center justify-between border-b border-[#EEF3F8] pb-2">
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Маршрутный Лист</span>
-                              <span className="text-[9px] font-mono text-gray-400 uppercase tracking-widest bg-[#EEF3F8] px-2 py-0.5 rounded">MEDROUTE AI</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-[11px]">
-                              <div>
-                                <div className="text-[8.5px] text-gray-400 font-bold uppercase">Специалист</div>
-                                <div className="font-bold text-blue-600 mt-0.5">{item.route.specialist}</div>
+                      {/* Reasons */}
+                      {route.reasons && route.reasons.length > 0 && (
+                        <div className="bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-4">
+                          <div className="text-xs font-bold text-[#2563EB] mb-2">Обоснование</div>
+                          <div className="flex flex-col gap-1.5">
+                            {route.reasons.map((r: string, ri: number) => (
+                              <div key={ri} className="flex items-start gap-2 text-sm text-[#64748B]">
+                                <span className="text-emerald-500 font-bold shrink-0">✓</span>
+                                <span>{r}</span>
                               </div>
-                              <div>
-                                <div className="text-[8.5px] text-gray-400 font-bold uppercase">Необходимость реабилитации</div>
-                                <div className="font-semibold text-gray-700 mt-0.5">{item.route.rehab_needed ? 'Да' : 'Нет'}</div>
-                              </div>
-                            </div>
-
-                            {/* Decision Reasons */}
-                            {item.route.reasons && item.route.reasons.length > 0 && (
-                              <div className="bg-[#F8FAFC] rounded-xl p-3 border border-[#DCE5EE] text-[11px] text-gray-600 flex flex-col gap-1">
-                                {item.route.reasons.map((reason: string, ri: number) => (
-                                  <div key={ri} className="flex items-start gap-1">
-                                    <span className="text-blue-500 font-bold shrink-0">✓</span>
-                                    <span>{reason}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Recommended clinics */}
-                            {item.route.clinics && item.route.clinics.length > 0 && (
-                              <div className="flex flex-col gap-1 border-t border-[#EEF3F8] pt-2">
-                                <span className="text-[8.5px] font-bold text-gray-400 uppercase tracking-wider">Рекомендуемые учреждения:</span>
-                                {item.route.clinics.map((cId) => (
-                                  <div key={cId} className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold">
-                                    <MapPin size={11} className="text-[#2563EB]" />
-                                    <span>{getClinicName(cId)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Recommended rehab centers */}
-                            {item.route.rehab_needed && item.route.rehab_centers && item.route.rehab_centers.length > 0 && (
-                              <div className="flex flex-col gap-1 border-t border-[#EEF3F8] pt-2">
-                                <span className="text-[8.5px] font-bold text-cyan-600 uppercase tracking-wider">Реабилитационные центры:</span>
-                                {item.route.rehab_centers.map((rId) => (
-                                  <div key={rId} className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold">
-                                    <MapPin size={11} className="text-[#0891B2]" />
-                                    <span>{getRehabName(rId)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            ))}
                           </div>
                         </div>
                       )}
 
-                      {/* Restore Consultation Button */}
-                      <button
-                        onClick={() => {
-                          window.localStorage.setItem('mediroute_active_restore', JSON.stringify(item));
-                          router.push('/dashboard');
-                        }}
-                        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-[#2563EB] bg-[#EEF3F8] hover:bg-[#E2EBF4] border border-[#DCE5EE] hover:border-[#B8CADF] transition-all"
-                      >
-                        Восстановить консультацию в чате <ArrowRight size={13} />
-                      </button>
+                      {/* Top clinic */}
+                      {topClinic && (
+                        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                          <MapPin size={15} className="text-[#2563EB] shrink-0" />
+                          <div>
+                            <div className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Рекомендованная клиника</div>
+                            <div className="text-sm font-bold text-[#172033] mt-0.5">{topClinic}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => router.push('/dashboard')}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all"
+                        >
+                          Посмотреть маршрут <ArrowRight size={14} />
+                        </button>
+                        <button
+                          onClick={() => deleteItem(i)}
+                          className="w-11 h-11 rounded-xl flex items-center justify-center border border-[#DCE5EE] bg-white hover:bg-red-50 hover:border-red-200 text-[#94A3B8] hover:text-red-500 transition-all"
+                          title="Удалить"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -248,6 +211,10 @@ export default function HistoryView() {
             </motion.div>
           );
         })}
+      </div>
+
+      <div className="text-center text-xs text-[#94A3B8] pt-2">
+        Данные клиник обновлены: Июль 2026
       </div>
     </div>
   );

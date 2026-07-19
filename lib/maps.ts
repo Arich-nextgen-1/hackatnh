@@ -58,3 +58,13 @@ export function isOpenNow(workingHours: string): boolean {
   const closeMin = parseInt(match[3]) * 60 + parseInt(match[4]);
   return current >= openMin && current < closeMin;
 }
+
+/**
+ * Estimate travel time in minutes from IT Hub based on distance.
+ */
+export function getTravelTimeFromHub(lat: number, lng: number): number {
+  const dist = getDistanceFromHub(lat, lng);
+  // Estimate ~1.8 minutes per km + 4 minutes traffic/stoplight overhead
+  return Math.max(5, Math.round(dist * 1.8 + 4));
+}
+

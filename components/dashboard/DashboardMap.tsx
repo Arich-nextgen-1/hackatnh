@@ -17,6 +17,7 @@ interface DashboardMapProps {
   zoom?: number;
   markers: MapMarker[];
   activeMarkerId?: string | null;
+  hoveredMarkerId?: string | null;
   onSelectMarker?: (id: string) => void;
 }
 
@@ -31,6 +32,7 @@ export default function DashboardMap({
   zoom = 12,
   markers,
   activeMarkerId,
+  hoveredMarkerId,
   onSelectMarker,
 }: DashboardMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -121,13 +123,14 @@ export default function DashboardMap({
     markerInstancesRef.current = {};
 
     // Custom Icon Definitions
-    const createCustomIcon = (color: string, isActive: boolean) => {
+    const createCustomIcon = (color: string, isActive: boolean, isHovered: boolean) => {
+      const isHighlighted = isActive || isHovered;
       const shadowColor = color === '#10B981' ? 'rgba(16, 185, 129, 0.6)' : color === '#06B6D4' ? 'rgba(6, 182, 212, 0.6)' : 'rgba(37, 99, 235, 0.6)';
-      const pulseRing = isActive
+      const pulseRing = isHighlighted
         ? `<div style="position:absolute;top:50%;left:50%;width:28px;height:28px;border-radius:50%;background:${color};opacity:0.35;animation:pulse-ring 1.4s ease-out infinite;"></div>
            <div style="position:absolute;top:50%;left:50%;width:28px;height:28px;border-radius:50%;background:${color};opacity:0.2;animation:pulse-ring 1.4s ease-out 0.5s infinite;"></div>`
         : '';
-      const dotStyle = isActive
+      const dotStyle = isHighlighted
         ? `width:18px;height:18px;border:3px solid white;box-shadow:0 0 12px ${shadowColor};animation:marker-bounce 0.9s infinite ease-in-out;z-index:1000;`
         : `width:12px;height:12px;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);`;
       return L.divIcon({
@@ -135,19 +138,19 @@ export default function DashboardMap({
                  ${pulseRing}
                  <div style="background-color:${color};border-radius:50%;${dotStyle}position:relative;z-index:2;"></div>
                </div>`,
-        className: `custom-leaflet-marker ${isActive ? 'active-marker' : ''}`,
-        iconSize: isActive ? [32, 32] : [16, 16],
-        iconAnchor: isActive ? [16, 16] : [8, 8],
+        className: `custom-leaflet-marker ${isHighlighted ? 'active-marker' : ''}`,
+        iconSize: isHighlighted ? [32, 32] : [16, 16],
+        iconAnchor: isHighlighted ? [16, 16] : [8, 8],
       });
     };
 
     markers.forEach((m) => {
       const isActive = m.id === activeMarkerId;
-      const icon = createCustomIcon(m.type === 'rehab' ? '#06B6D4' : m.type === 'private' ? '#10B981' : '#2563EB', isActive);
+      const isHovered = m.id === hoveredMarkerId;
+      const icon = createCustomIcon(m.type === 'rehab' ? '#06B6D4' : m.type === 'private' ? '#10B981' : '#2563EB', isActive, isHovered);
       const marker = L.marker([m.lat, m.lng], { icon }).addTo(mapRef.current);
 
       // Popup HTML
-      const isOpenStr = m.rating > 0 ? `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>Открыто` : '';
       const twoGisUrl = `https://2gis.kz/shymkent/routeSearch/rsType/car/from/69.5901,42.3417/to/${m.lng},${m.lat}`;
       const popupHtml = `
         <div style="padding:12px 14px;min-width:200px;">
@@ -176,16 +179,42 @@ export default function DashboardMap({
 
       markerInstancesRef.current[m.id] = marker;
     });
-  }, [loaded, markers, activeMarkerId]);
+  }, [loaded, markers, activeMarkerId, hoveredMarkerId]);
 
-  // Center on active marker or coordinates
+  // Center on active marker, draw route line, and fit bounds
   useEffect(() => {
     if (!loaded || !mapRef.current) return;
+    const L = window.L;
+    if (!L) return;
+
+    // Clear previous route polyline if exists
+    if (mapRef.current.routeLineInstance) {
+      mapRef.current.routeLineInstance.remove();
+      mapRef.current.routeLineInstance = null;
+    }
 
     if (activeMarkerId && markerInstancesRef.current[activeMarkerId]) {
       const marker = markerInstancesRef.current[activeMarkerId];
       const latLng = marker.getLatLng();
-      mapRef.current.setView(latLng, 14, { animate: true });
+
+      // IT Hub fixed coordinates (42.3417, 69.5901)
+      const itHubCoords = [42.3417, 69.5901];
+      const destCoords = [latLng.lat, latLng.lng];
+
+      // Draw dashed blue route line
+      const polyline = L.polyline([itHubCoords, destCoords], {
+        color: '#2563EB',
+        weight: 4.5,
+        opacity: 0.8,
+        dashArray: '8, 8',
+      }).addTo(mapRef.current);
+
+      mapRef.current.routeLineInstance = polyline;
+
+      // Fit map view to show the entire route with padding
+      const bounds = L.latLngBounds([itHubCoords, destCoords]);
+      mapRef.current.fitBounds(bounds, { padding: [50, 50], animate: true });
+
       marker.openPopup();
     } else {
       mapRef.current.setView(center, zoom, { animate: true });

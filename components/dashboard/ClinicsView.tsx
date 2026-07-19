@@ -55,12 +55,47 @@ function LoadBadge({ load }: { load?: 'low' | 'medium' | 'high' }) {
 function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void }) {
   const twoGisUrl = build2GISUrl(clinic.lat, clinic.lng);
   const loadInfo = clinic.load ? getLoadInfo(clinic.load) : null;
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 450);
+    return () => clearTimeout(timer);
+  }, [clinic.id]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex">
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-[#172033]/40 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+          className="relative ml-auto w-full max-w-md bg-card h-full p-6 shadow-2xl flex flex-col gap-6"
+        >
+          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="mt-auto h-12 bg-gray-100 rounded-2xl animate-pulse" />
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -92,31 +127,33 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           >
             <X size={15} />
           </button>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-              <Building2 size={22} className="text-white" />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+              <Building2 size={26} className="text-white" />
             </div>
             <div>
               <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">
                 {clinic.type === 'private' ? 'Частная клиника' : 'Государственная клиника'}
               </span>
-              <h2 className="text-white font-bold text-sm leading-tight mt-0.5">{clinic.name}</h2>
+              <h2 className="text-white font-black text-lg leading-tight mt-0.5">{clinic.name ?? 'Клиника'}</h2>
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-white/20 rounded-lg px-2.5 py-1">
-              <Star size={11} className="fill-yellow-300 text-yellow-300" />
-              <span className="text-white text-xs font-bold">{(clinic.rating ?? 0).toFixed(1)}</span>
-              <span className="text-white/60 text-[10px]">({clinic.reviewCount ?? 0} отз.)</span>
+            <div className="flex items-center gap-1.5 bg-white/20 rounded-lg px-3 py-1.5">
+              <Star size={13} className="fill-yellow-300 text-yellow-300" />
+              <span className="text-white text-sm font-bold">{(clinic.rating ?? 0).toFixed(1)}</span>
+              <span className="text-white/70 text-xs">({clinic.reviewCount ?? 0} отз.)</span>
             </div>
-            <div className={`flex items-center gap-1.5 bg-white/20 rounded-lg px-2.5 py-1 text-xs font-semibold ${clinic.open ? 'text-green-300' : 'text-red-300'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${clinic.open ? 'bg-green-300' : 'bg-red-400'}`} />
-              {clinic.open ? 'Открыто' : 'Закрыто'}
+            <div className={`flex items-center gap-1.5 bg-white/20 rounded-lg px-3 py-1.5 text-sm font-semibold ${clinic.open ? 'text-green-300' : 'text-red-300'}`}>
+              <span className={`w-2 h-2 rounded-full ${clinic.open ? 'bg-green-300 animate-pulse' : 'bg-red-400'}`} />
+              {clinic.open ? 'Открыто сейчас' : 'Закрыто'}
             </div>
-            <div className="flex items-center gap-1 bg-white/20 rounded-lg px-2.5 py-1">
-              <MapPin size={10} className="text-white/70" />
-              <span className="text-white text-[10px]">{clinic.distance != null ? `${clinic.distance} км` : 'рядом'}</span>
-            </div>
+            {clinic.distance != null && (
+              <div className="flex items-center gap-1.5 bg-white/20 rounded-lg px-3 py-1.5">
+                <MapPin size={12} className="text-white/70" />
+                <span className="text-white text-xs font-semibold">{clinic.distance} км</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -125,13 +162,13 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
 
           {/* Load indicator */}
           {loadInfo && (
-            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${loadInfo.bg} ${loadInfo.border}`}>
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: loadInfo.dot }} />
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${loadInfo.bg} ${loadInfo.border}`}>
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: loadInfo.dot }} />
               <div>
-                <div className={`text-xs font-bold ${loadInfo.text}`}>{loadInfo.label}</div>
-                <div className="text-[10px] text-gray-500">
+                <div className={`text-sm font-bold ${loadInfo.text}`}>{loadInfo.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">
                   {clinic.load === 'low' && 'Сейчас почти нет очереди'}
-                  {clinic.load === 'medium' && 'Умеренная загрузка, ожидание 15-20 мин'}
+                  {clinic.load === 'medium' && 'Умеренная загрузка, ожидание 15–20 мин'}
                   {clinic.load === 'high' && 'Высокая нагрузка, возможна очередь'}
                 </div>
               </div>
@@ -139,23 +176,23 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           )}
 
           {/* Contact info */}
-          <div className="flex flex-col gap-2 bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-4 text-xs text-[#64748B]">
-            <div className="flex items-center gap-2">
-              <MapPin size={13} className="text-[#94A3B8] shrink-0" />
-              <span>{clinic.address}</span>
+          <div className="flex flex-col gap-3 bg-[#F8FAFC] border border-[#DCE5EE] rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <MapPin size={16} className="text-[#2563EB] shrink-0 mt-0.5" />
+              <span className="text-sm text-[#172033] leading-snug">{clinic.address ?? 'Адрес не указан'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Phone size={13} className="text-[#94A3B8] shrink-0" />
-              <a href={`tel:${clinic.phone}`} className="text-[#2563EB] font-semibold">{clinic.phone || 'Нет телефона'}</a>
+            <div className="flex items-center gap-3">
+              <Phone size={16} className="text-[#2563EB] shrink-0" />
+              <a href={`tel:${clinic.phone}`} className="text-sm font-bold text-[#2563EB]">{clinic.phone || 'Нет телефона'}</a>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock size={13} className="text-[#94A3B8] shrink-0" />
-              <span>{clinic.workingHours}</span>
+            <div className="flex items-center gap-3">
+              <Clock size={16} className="text-[#2563EB] shrink-0" />
+              <span className="text-sm text-[#172033]">{clinic.workingHours ?? 'Режим работы уточняйте по телефону'}</span>
             </div>
             {clinic.website && (
-              <div className="flex items-center gap-2">
-                <Globe size={13} className="text-[#94A3B8] shrink-0" />
-                <a href={clinic.website} target="_blank" rel="noreferrer" className="text-[#2563EB] hover:underline truncate">{clinic.website}</a>
+              <div className="flex items-center gap-3">
+                <Globe size={16} className="text-[#2563EB] shrink-0" />
+                <a href={clinic.website} target="_blank" rel="noreferrer" className="text-sm text-[#2563EB] hover:underline truncate">{clinic.website}</a>
               </div>
             )}
           </div>
@@ -163,10 +200,10 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           {/* Services */}
           {clinic.services && clinic.services.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-[#172033] mb-2">Услуги</div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="text-sm font-bold text-[#172033] mb-3">Услуги</div>
+              <div className="flex flex-wrap gap-2">
                 {clinic.services.map((s) => (
-                  <span key={s} className="text-[10px] px-2.5 py-1 rounded-lg bg-[#EEF3F8] border border-[#DCE5EE] text-[#64748B] font-medium">{s}</span>
+                  <span key={s} className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700">{s}</span>
                 ))}
               </div>
             </div>
@@ -175,16 +212,16 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           {/* Doctors */}
           {clinic.doctors && clinic.doctors.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-[#172033] mb-2">Специалисты</div>
-              <div className="flex flex-col gap-2">
+              <div className="text-sm font-bold text-[#172033] mb-3">Специалисты</div>
+              <div className="flex flex-col gap-2.5">
                 {clinic.doctors.map((doc) => (
-                  <div key={doc.name} className="flex items-center gap-3 bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl px-3 py-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[#EEF3F8] border border-[#DCE5EE] flex items-center justify-center shrink-0">
-                      <span className="text-[10px] font-bold text-[#2563EB]">{doc.initials}</span>
+                  <div key={doc.name} className="flex items-center gap-3 bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl px-4 py-3">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#EEF3F8] to-[#E2EBF4] border border-[#DCE5EE] flex items-center justify-center shrink-0">
+                      <span className="text-sm font-black text-[#2563EB]">{doc.initials ?? '?'}</span>
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-[#172033]">{doc.name}</div>
-                      <div className="text-[10px] text-[#64748B]">{doc.specialty}</div>
+                      <div className="text-sm font-semibold text-[#172033]">{doc.name ?? 'Врач'}</div>
+                      <div className="text-xs text-[#64748B] mt-0.5">{doc.specialty ?? 'Специализация не указана'}</div>
                     </div>
                   </div>
                 ))}
@@ -195,34 +232,34 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           {/* Advantages */}
           {clinic.advantages && clinic.advantages.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-[#172033] mb-2">Преимущества</div>
-              <div className="flex flex-col gap-1.5">
+              <div className="text-sm font-bold text-[#172033] mb-3">Преимущества</div>
+              <div className="flex flex-col gap-2.5">
                 {clinic.advantages.map((adv) => (
-                  <div key={adv} className="flex items-start gap-2 text-xs text-[#64748B]">
-                    <CheckCircle2 size={13} className="text-[#2563EB] shrink-0 mt-0.5" />
-                    <span>{adv}</span>
+                  <div key={adv} className="flex items-start gap-3 text-sm text-[#172033]">
+                    <CheckCircle2 size={17} className="text-[#2563EB] shrink-0 mt-0.5" />
+                    <span className="leading-snug">{adv}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Reviews */}
+          {/* Reviews — max 2 */}
           {clinic.reviews && clinic.reviews.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-[#172033] mb-2">Отзывы</div>
-              <div className="flex flex-col gap-2">
-                {clinic.reviews.map((rev, i) => (
-                  <div key={i} className="bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-semibold text-[#172033]">{rev.author}</span>
+              <div className="text-sm font-bold text-[#172033] mb-3">Отзывы</div>
+              <div className="flex flex-col gap-2.5">
+                {clinic.reviews.slice(0, 2).map((rev, i) => (
+                  <div key={i} className="bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-[#172033]">{rev.author ?? 'Пациент'}</span>
                       <div className="flex items-center gap-0.5">
-                        {Array.from({ length: rev.rating }).map((_, j) => (
-                          <Star key={j} size={9} className="fill-yellow-400 text-yellow-400" />
+                        {Array.from({ length: rev.rating ?? 0 }).map((_, j) => (
+                          <Star key={j} size={12} className="fill-yellow-400 text-yellow-400" />
                         ))}
                       </div>
                     </div>
-                    <p className="text-[11px] text-[#64748B] leading-relaxed">{rev.text}</p>
+                    <p className="text-sm text-[#64748B] leading-relaxed">{rev.text ?? ''}</p>
                   </div>
                 ))}
               </div>
@@ -231,26 +268,31 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
         </div>
 
         {/* Action buttons */}
-        <div className="flex-shrink-0 p-5 border-t border-[#DCE5EE] flex flex-col gap-2">
+        <div className="flex-shrink-0 p-5 border-t border-[#DCE5EE] flex flex-col gap-2.5">
           <a
             href={twoGisUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200"
           >
-            <Navigation2 size={15} />
+            <Navigation2 size={16} />
             Построить маршрут в 2GIS
           </a>
           <div className="flex gap-2">
             <a
               href={`tel:${clinic.phone}`}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-[#2563EB] bg-[#EEF3F8] border border-[#DCE5EE] hover:bg-[#E2EBF4] transition-all"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-[#2563EB] bg-[#EEF3F8] border border-[#DCE5EE] hover:bg-[#E2EBF4] transition-all"
             >
-              <Phone size={13} /> Позвонить
+              <Phone size={14} /> Позвонить
             </a>
-            <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-[#64748B] bg-[#F8FAFC] border border-[#DCE5EE] hover:bg-[#EEF3F8] transition-all">
-              Перейти к записи
-            </button>
+            <a
+              href="https://damumed.kz"
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 transition-all"
+            >
+              Записаться
+            </a>
           </div>
         </div>
       </motion.div>
@@ -266,6 +308,7 @@ export default function ClinicsView() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
   const [drawerClinic, setDrawerClinic] = useState<Clinic | null>(null);
+  const [hoveredClinicId, setHoveredClinicId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -338,7 +381,7 @@ export default function ClinicsView() {
           <div>
             <h2 className="text-xl font-bold text-[#172033]">Клиники</h2>
             <p className="text-xs text-[#64748B] mt-0.5">
-              <span className="font-semibold text-[#2563EB]">{filtered.length}</span> из {clinicsData.length} клиник • Шымкент
+              Клиники Шымкента
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -391,6 +434,8 @@ export default function ClinicsView() {
               whileHover={{ y: -5, scale: 1.015, transition: { duration: 0.18 } }}
               transition={{ duration: 0.25, delay: i * 0.04 }}
               onClick={() => setActiveClinicId(clinic.id)}
+              onMouseEnter={() => setHoveredClinicId(clinic.id)}
+              onMouseLeave={() => setHoveredClinicId(null)}
               className={`bg-card rounded-2xl border p-4 shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] cursor-pointer transition-all flex flex-col gap-3 ${
                 activeClinicId === clinic.id
                   ? 'border-[#2563EB] shadow-[0_0_0_3px_rgba(37,99,235,0.12)]'
@@ -411,7 +456,7 @@ export default function ClinicsView() {
                       {clinic.open ? 'Открыто' : 'Закрыто'}
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold text-[#172033] leading-tight">{clinic.name}</h3>
+                  <h3 className="text-base font-bold text-[#172033] leading-tight">{clinic.name ?? 'Клиника'}</h3>
                 </div>
                 <button
                   onClick={(e) => toggleFavorite(clinic.id, e)}
@@ -426,9 +471,9 @@ export default function ClinicsView() {
                 <StarRating rating={clinic.rating} />
                 <span className="text-[10px] text-[#94A3B8]">{clinic.reviewCount ?? 0} отзывов</span>
                 {clinic.distance != null && (
-                  <span className="flex items-center gap-0.5 text-[10px] text-[#64748B] font-medium">
+                  <span className="flex items-center gap-0.5 text-[11px] text-[#64748B] font-semibold">
                     <MapPin size={9} className="text-[#94A3B8]" />
-                    {clinic.distance} км от IT Hub
+                    {clinic.distance} км · ≈ {Math.ceil(clinic.distance / 0.5)} мин
                   </span>
                 )}
               </div>
@@ -437,12 +482,12 @@ export default function ClinicsView() {
               <LoadBadge load={clinic.load} />
 
               {/* Specialization chips */}
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {(clinic.specializations ?? []).slice(0, 3).map((s) => (
-                  <span key={s} className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#EEF3F8] text-[#64748B] border border-[#DCE5EE]">{s}</span>
+                  <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100">{s}</span>
                 ))}
                 {(clinic.specializations ?? []).length > 3 && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#EEF3F8] text-[#94A3B8]">+{(clinic.specializations ?? []).length - 3}</span>
+                  <span className="text-xs px-2.5 py-1 rounded-lg bg-[#EEF3F8] text-[#94A3B8] border border-[#DCE5EE]">+{(clinic.specializations ?? []).length - 3}</span>
                 )}
               </div>
 
@@ -482,6 +527,11 @@ export default function ClinicsView() {
             </div>
           )}
         </div>
+
+        {/* Database last updated footer */}
+        <div className="text-[10px] text-gray-400 mt-6 pt-4 border-t border-[#EEF3F8] text-center">
+          Данные клиник обновлены: Июль 2026
+        </div>
       </div>
 
       {/* Right: Map */}
@@ -498,6 +548,7 @@ export default function ClinicsView() {
           center={mapCenter}
           markers={mapMarkers}
           activeMarkerId={activeClinicId}
+          hoveredMarkerId={hoveredClinicId}
           onSelectMarker={(id) => {
             setActiveClinicId(id);
             const found = enriched.find((c) => c.id === id);
