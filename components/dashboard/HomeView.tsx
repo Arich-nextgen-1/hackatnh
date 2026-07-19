@@ -210,6 +210,13 @@ export default function HomeView() {
       const responseText = await getGrokRoutingResponse(updatedHistory, profile);
       const { cleanText, route } = parseRouteContent(responseText);
 
+      console.log('--- Grok Consultation Response Log ---');
+      console.log('Raw responseText:', responseText);
+      console.log('Cleaned text (before cleanUndefined):', cleanText);
+      console.log('Cleaned text (after cleanUndefined):', cleanUndefined(cleanText));
+      console.log('Parsed Route:', route);
+      console.log('---------------------------------------');
+
       setChatHistory([
         ...updatedHistory,
         { role: 'assistant', content: cleanText },
@@ -247,6 +254,13 @@ export default function HomeView() {
     try {
       const responseText = await getGrokRoutingResponse(updatedHistory, profile);
       const { cleanText, route } = parseRouteContent(responseText);
+
+      console.log('--- Grok Reply Response Log ---');
+      console.log('Raw responseText:', responseText);
+      console.log('Cleaned text (before cleanUndefined):', cleanText);
+      console.log('Cleaned text (after cleanUndefined):', cleanUndefined(cleanText));
+      console.log('Parsed Route:', route);
+      console.log('--------------------------------');
 
       setChatHistory([
         ...updatedHistory,
