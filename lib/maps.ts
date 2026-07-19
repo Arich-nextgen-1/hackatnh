@@ -9,6 +9,13 @@ export function build2GISUrl(destLat: number, destLng: number): string {
 }
 
 /**
+ * Build a Google Maps route URL from IT Hub to a destination.
+ */
+export function buildGoogleMapsUrl(destLat: number, destLng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&origin=${IT_HUB.lat},${IT_HUB.lng}&destination=${destLat},${destLng}&travelmode=driving`;
+}
+
+/**
  * Haversine distance in km from IT Hub to a given coordinate.
  */
 export function getDistanceFromHub(lat: number, lng: number): number {

@@ -8,7 +8,7 @@ import { getGrokRoutingResponse, GrokMessage } from '@/services/grok';
 import clinicsData from '@/data/clinics.json';
 import rehabsData from '@/data/rehabilitation.json';
 import dynamic from 'next/dynamic';
-import { build2GISUrl, getDistanceFromHub } from '@/lib/maps';
+import { build2GISUrl, buildGoogleMapsUrl, getDistanceFromHub } from '@/lib/maps';
 
 import { useRouter } from 'next/navigation';
 
@@ -73,8 +73,6 @@ export default function HomeView() {
   const [thinkStep, setThinkStep] = useState(0);
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
   const [whyNotOpen, setWhyNotOpen] = useState<Record<string, boolean>>({});
-  const [emergencyOpen, setEmergencyOpen] = useState(false);
-  const [emergencyScenario, setEmergencyScenario] = useState<string | null>(null);
   // Step-by-step AI Think Process interval — 6 steps
   useEffect(() => {
     let interval: any;
@@ -139,6 +137,27 @@ export default function HomeView() {
     return 'Добрый вечер';
   };
 
+  const sanitizeRoute = (route: any) => {
+    if (!route) return null;
+    return {
+      specialist: typeof route.specialist === 'string' ? route.specialist : 'Терапевт',
+      rehab_needed: !!route.rehab_needed,
+      clinics: Array.isArray(route.clinics) ? route.clinics.map(String) : [],
+      rehab_centers: Array.isArray(route.rehab_centers) ? route.rehab_centers.map(String) : [],
+      confidence_score: typeof route.confidence_score === 'number' ? route.confidence_score : 90,
+      confidence_reasons: Array.isArray(route.confidence_reasons) ? route.confidence_reasons.map(String) : ['симптомам', 'возрасту', 'анамнезу'],
+      reasons: Array.isArray(route.reasons) ? route.reasons.map(String) : ['Требуется очная консультация специалиста.'],
+      urgency: ['low', 'medium', 'high'].includes(route.urgency) ? route.urgency : 'medium',
+      sources: Array.isArray(route.sources) ? route.sources.map(String) : ['Клинические рекомендации Министерства здравоохранения РК', 'База медицинских организаций'],
+      excluded_specialists: Array.isArray(route.excluded_specialists)
+        ? route.excluded_specialists.map((e: any) => ({
+            specialist: typeof e?.specialist === 'string' ? e.specialist : 'Специалист',
+            reason: typeof e?.reason === 'string' ? e.reason : 'Характер симптомов не указывает на патологию этого профиля.'
+          }))
+        : []
+    };
+  };
+
   // Parse `<route>...</route>` from message
   const parseRouteContent = (content: string) => {
     const match = content.match(/<route>([\s\S]*?)<\/route>/);
@@ -146,7 +165,7 @@ export default function HomeView() {
     try {
       const routeData = JSON.parse(match[1].trim());
       const cleanText = content.replace(/<route>[\s\S]*?<\/route>/, '').trim();
-      return { cleanText, route: routeData };
+      return { cleanText, route: sanitizeRoute(routeData) };
     } catch (e) {
       console.error('Failed to parse route JSON:', e);
       return { cleanText: content, route: null };
@@ -346,84 +365,8 @@ export default function HomeView() {
             Как вы себя чувствуете?
           </h2>
 
-          {/* Emergency Button */}
-          <button
-            onClick={() => setEmergencyOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-200 hover:shadow-red-300"
-          >
-            <AlertTriangle size={15} />
-            Экстренная помощь
-          </button>
         </motion.div>
       )}
-
-      {/* Emergency Modal */}
-      <AnimatePresence>
-        {emergencyOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#172033]/50 backdrop-blur-sm"
-              onClick={() => { setEmergencyOpen(false); setEmergencyScenario(null); }}
-            />
-            <motion.div initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 16 }}
-              className="relative bg-card rounded-3xl shadow-2xl w-full max-w-sm border border-[#DCE5EE] overflow-hidden"
-            >
-              {!emergencyScenario ? (
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
-                          <AlertTriangle size={14} className="text-red-500" />
-                        </div>
-                        <h3 className="font-bold text-[#172033] text-base">Экстренная помощь</h3>
-                      </div>
-                      <p className="text-xs text-[#64748B]">Выберите ситуацию</p>
-                    </div>
-                    <button onClick={() => { setEmergencyOpen(false); setEmergencyScenario(null); }}
-                      className="w-8 h-8 rounded-full bg-[#EEF3F8] flex items-center justify-center text-[#64748B] hover:bg-[#DCE5EE]">
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {['Инсульт', 'Инфаркт', 'Потеря сознания', 'ДТП', 'Кровотечение'].map((s) => (
-                      <button key={s} onClick={() => setEmergencyScenario(s)}
-                        className="text-left px-4 py-3 rounded-xl border border-[#DCE5EE] text-sm font-medium text-[#172033] hover:border-red-300 hover:bg-red-50 transition-all flex items-center gap-3">
-                        <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 flex flex-col gap-4">
-                  <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle size={16} className="text-red-500" />
-                      <span className="font-bold text-red-700 text-sm">{emergencyScenario}</span>
-                    </div>
-                    <p className="text-xs text-red-600 leading-relaxed">
-                      Высокая вероятность экстренного состояния. Рекомендуем немедленно вызвать скорую помощь.
-                    </p>
-                  </div>
-                  <a href="tel:103"
-                    className="w-full py-4 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black text-xl text-center shadow-lg shadow-red-200 transition-all">
-                    ПОЗВОНИТЬ 103
-                  </a>
-                  <a href={build2GISUrl(42.3050, 69.5950)} target="_blank" rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-[#2563EB] bg-[#EEF3F8] border border-[#DCE5EE] hover:bg-[#E2EBF4] transition-all">
-                    <Navigation2 size={14} /> Маршрут в областную больницу
-                  </a>
-                  <button onClick={() => setEmergencyScenario(null)}
-                    className="text-xs text-[#94A3B8] underline underline-offset-2">
-                    Вернуться
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Main consultation screen */}
       <div className="flex flex-col gap-6">
@@ -440,7 +383,7 @@ export default function HomeView() {
               {[
                 { label: 'Изучаю симптомы...', icon: MessageSquare },
                 { label: 'Определяю специалиста...', icon: Stethoscope },
-                { label: 'Нашёл ' + clinicsData.length + ' клиник...', icon: Building2 },
+                { label: 'Подбираю подходящие клиники...', icon: Building2 },
                 { label: 'Сравниваю рейтинг...', icon: Star },
                 { label: 'Проверяю расписание...', icon: Clock },
                 { label: 'Формирую маршрут...', icon: Route },
@@ -534,7 +477,7 @@ export default function HomeView() {
 
                       {msg.role === 'assistant' && (
                         <p className="text-[10px] text-red-500/80 font-medium mt-2 pt-2 border-t border-[#EEF3F8] leading-relaxed">
-                          AI не ставит диагноз и не заменяет врача. Рекомендации предназначены только для маршрутизации пациента.
+                          AI не заменяет врача и не ставит диагноз. Рекомендации носят исключительно информационный характер.
                         </p>
                       )}
                     </div>
@@ -775,10 +718,10 @@ export default function HomeView() {
                     <div className="flex items-center justify-between border-t border-dashed border-[#DCE5EE] pt-3">
                       <div>
                         <div className="text-[9px] text-gray-400 font-bold uppercase leading-none">Рекомендуемый шаг</div>
-                        <div className="text-xs font-bold text-gray-800 mt-1">Запись на консультацию через ЕГСЗ</div>
+                        <div className="text-xs font-bold text-gray-800 mt-1">Проложите маршрут и посетите клинику</div>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-xl border border-blue-100 uppercase tracking-wider">
-                        DamuMed
+                      <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black px-3 py-1 rounded-xl border border-emerald-100 uppercase tracking-wider">
+                        Маршрут готов
                       </div>
                     </div>
                   </div>
@@ -1049,30 +992,32 @@ export default function HomeView() {
 
                   {/* Action Buttons */}
                   <div className="grid sm:grid-cols-3 gap-3 border-t border-gray-100 pt-5">
-                    <a 
-                      href="https://damumed.kz" 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-2 py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all text-center"
-                    >
-                      <HeartPulse size={14} /> Записаться через DamuMed
-                    </a>
+                    {recommendedClinics[0] && (
+                      <>
+                        <a 
+                          href={build2GISUrl(recommendedClinics[0].lat, recommendedClinics[0].lng)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center justify-center gap-2 py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all text-center"
+                        >
+                          <Navigation2 size={14} /> Маршрут в 2GIS
+                        </a>
+                        <a 
+                          href={buildGoogleMapsUrl(recommendedClinics[0].lat, recommendedClinics[0].lng)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all text-center"
+                        >
+                          <Navigation2 size={14} /> Google Maps
+                        </a>
+                      </>
+                    )}
                     <a 
                       href={`tel:${recommendedClinics[0]?.phone ?? '103'}`}
                       className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-[#DCE5EE] hover:bg-[#EEF3F8]/50 text-gray-700 rounded-2xl text-xs font-bold transition-all text-center"
                     >
-                      <Phone size={14} className="text-[#2563EB]" /> Позвонить в регистратуру
+                      <Phone size={14} className="text-[#2563EB]" /> Позвонить
                     </a>
-                    <button 
-                      onClick={() => {
-                        if (recommendedClinics.length > 0) {
-                          setActiveClinicId(recommendedClinics[0].id);
-                        }
-                      }}
-                      className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-[#DCE5EE] hover:bg-[#EEF3F8]/50 text-gray-700 rounded-2xl text-xs font-bold transition-all text-center"
-                    >
-                      <MapPin size={14} className="text-[#2563EB]" /> Показать на карте
-                    </button>
                   </div>
 
                   {/* Authority sources list */}
@@ -1197,20 +1142,7 @@ export default function HomeView() {
               {/* Quick Actions Buttons */}
               <div>
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Быстрые действия</div>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <button
-                    onClick={() => setEmergencyOpen(true)}
-                    className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-red-100 bg-red-50 hover:bg-red-100/50 hover:border-red-200 text-left transition-all"
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
-                      <AlertTriangle size={15} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-red-700">Экстренная помощь</div>
-                      <div className="text-[9px] text-red-600 mt-0.5 leading-tight">Быстрый вызов 103 при критических состояниях</div>
-                    </div>
-                  </button>
-
+                <div className="grid sm:grid-cols-2 gap-3">
                   <button
                     onClick={() => router.push('/dashboard/clinics')}
                     className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-blue-100 bg-blue-50 hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all"
@@ -1220,7 +1152,7 @@ export default function HomeView() {
                     </div>
                     <div>
                       <div className="text-xs font-bold text-blue-700">Подобрать клинику</div>
-                      <div className="text-[9px] text-blue-600 mt-0.5 leading-tight">Поиск и сравнение медицинских центров города</div>
+                      <div className="text-[9px] text-blue-600 mt-0.5 leading-tight">Поиск и сравнение medical-центров города</div>
                     </div>
                   </button>
 

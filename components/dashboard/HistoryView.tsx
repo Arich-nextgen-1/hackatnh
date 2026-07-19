@@ -7,6 +7,8 @@ import {
   ArrowRight, ChevronDown, ChevronUp, Trash2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import clinicsData from '@/data/clinics.json';
+import rehabsData from '@/data/rehabilitation.json';
 
 interface SavedRoute {
   route: any;
@@ -111,7 +113,10 @@ export default function HistoryView() {
           const specialist = route.specialist ?? item.specialist ?? 'Специалист';
           const urgency = route.urgency ?? item.urgency;
           const query = item.query ?? route.query ?? 'Консультация';
-          const topClinic = route.recommended_clinics?.[0]?.name ?? null;
+          const topClinicId = route.clinics?.[0] ?? null;
+          const topClinic = topClinicId
+            ? (clinicsData as any[]).find((c) => c.id === topClinicId)?.name ?? null
+            : route.recommended_clinics?.[0]?.name ?? null;
           const isExpanded = expandedIdx === i;
 
           return (
