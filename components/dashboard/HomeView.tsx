@@ -36,23 +36,27 @@ function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
   return parseFloat((R * c).toFixed(1));
 }
 
-function TypewriterText({ text, speed = 25 }: { text: string; speed?: number }) {
+function TypewriterText({ text, speed = 25 }: { text?: string | null; speed?: number }) {
+  // Fully defensive: guard against undefined/null/non-string values
+  const safeText = (text === null || text === undefined) ? '' : String(text).replace(/\bundefined\b/gi, '').trim();
   const [displayed, setDisplayed] = useState('');
 
   useEffect(() => {
-    const words = text.split(' ');
+    const words = safeText.split(' ');
     setDisplayed('');
     let idx = 0;
+    if (words.length === 0 || (words.length === 1 && words[0] === '')) return;
     const timer = setInterval(() => {
       if (idx < words.length) {
-        setDisplayed((prev) => (prev ? prev + ' ' + words[idx] : words[idx]));
+        const word = words[idx] ?? '';
+        setDisplayed((prev) => (prev ? prev + ' ' + word : word));
         idx++;
       } else {
         clearInterval(timer);
       }
     }, speed);
     return () => clearInterval(timer);
-  }, [text, speed]);
+  }, [safeText, speed]);
 
   return <p className="text-sm leading-relaxed whitespace-pre-line">{displayed}</p>;
 }
@@ -490,6 +494,9 @@ export default function HomeView() {
             <div className="flex flex-col gap-4">
               {chatHistory.map((msg, index) => {
                 const isLastMessage = index === chatHistory.length - 1;
+                // Debug: log what's being rendered
+                console.log(`[Render msg ${index}] role=${msg.role} content type=${typeof msg.content} content(50)=${String(msg.content ?? '').substring(0, 50)}`);
+                const safeContent = cleanUndefined(msg.content);
                 return (
                   <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                     {msg.role === 'assistant' && (
@@ -504,20 +511,20 @@ export default function HomeView() {
                           : 'bg-card text-[#172033] border-[#DCE5EE]'
                       }`}
                     >
-                      {msg.role === 'assistant' && (
-                        <div className="text-[10px] font-bold text-[#2563EB] mb-1">MediRoute AI</div>
-                      )}
-                      
-                      {msg.role === 'assistant' && isLastMessage && !loading ? (
-                        <TypewriterText text={cleanUndefined(msg.content)} />
+                      {msg.role === 'assistant' ? (
+                        <>
+                          <div className="text-[10px] font-bold text-[#2563EB] mb-1">MediRoute AI</div>
+                          {isLastMessage && !loading ? (
+                            <TypewriterText text={safeContent} />
+                          ) : (
+                            <p className="text-sm leading-relaxed whitespace-pre-line">{safeContent}</p>
+                          )}
+                          <p className="text-[10px] text-red-500/80 font-medium mt-2 pt-2 border-t border-[#EEF3F8] leading-relaxed">
+                            AI не заменяет врача и не ставит диагноз. Рекомендации носят исключительно информационный характер.
+                          </p>
+                        </>
                       ) : (
-                        <p className="text-sm leading-relaxed whitespace-pre-line">{cleanUndefined(msg.content)}</p>
-                      )}
-
-                      {msg.role === 'assistant' && (
-                        <p className="text-[10px] text-red-500/80 font-medium mt-2 pt-2 border-t border-[#EEF3F8] leading-relaxed">
-                          AI не заменяет врача и не ставит диагноз. Рекомендации носят исключительно информационный характер.
-                        </p>
+                        <p className="text-sm leading-relaxed whitespace-pre-line">{safeContent}</p>
                       )}
                     </div>
                     {msg.role === 'user' && (
