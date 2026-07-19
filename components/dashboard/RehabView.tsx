@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, Phone, MapPin, Clock, ChevronRight, Dumbbell,
-  SlidersHorizontal, Search, Heart, X, Navigation2, CheckCircle2, Globe
+  SlidersHorizontal, Search, Heart, X, Globe, Navigation2,
+  CheckCircle2, Copy, ExternalLink
 } from 'lucide-react';
 import rehabsData from '@/data/rehabilitation.json';
 import dynamic from 'next/dynamic';
@@ -13,7 +14,6 @@ import { buildGoogleMapsUrl, getDistanceFromHub, getLoadInfo, isOpenNow } from '
 const DashboardMap = dynamic(() => import('./DashboardMap'), { ssr: false });
 
 /* ─── Types ─────────────────────────────────────────────────── */
-interface Doctor { name: string; specialty: string; initials: string; }
 interface Review { author: string; rating: number; text: string; }
 interface RehabCenter {
   id: string; name: string; address: string; rating: number; reviewCount: number;
@@ -41,20 +41,9 @@ const CATEGORY_FILTERS = [
 /* ─── Helpers ────────────────────────────────────────────────── */
 function StarRating({ rating }: { rating: number }) {
   return (
-    <span className="flex items-center gap-1 text-yellow-600 font-bold text-xs">
-      <Star size={11} className="fill-yellow-400 text-yellow-400" />
+    <span className="flex items-center gap-1 font-bold text-sm text-gray-800">
+      <Star size={14} className="fill-yellow-400 text-yellow-400" />
       {(rating ?? 0).toFixed(1)}
-    </span>
-  );
-}
-
-function LoadBadge({ load }: { load?: 'low' | 'medium' | 'high' }) {
-  if (!load) return null;
-  const info = getLoadInfo(load);
-  return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${info.bg} ${info.text} ${info.border}`}>
-      <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: info.dot }} />
-      {info.label}
     </span>
   );
 }
@@ -65,41 +54,44 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
   const loadInfo = center.load ? getLoadInfo(center.load) : null;
   const programs = center.programs ?? center.services ?? [];
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 450);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setLoading(false), 380);
+    return () => clearTimeout(t);
   }, [center.id]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
   }, [onClose]);
+
+  const copyPhone = () => {
+    navigator.clipboard.writeText(center.phone).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex">
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-[#172033]/40 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-          className="relative ml-auto w-full max-w-md bg-card h-full p-6 shadow-2xl flex flex-col gap-6"
-        >
-          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X size={16} />
-            </button>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+        <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+          className="relative ml-auto w-full max-w-md bg-white h-full shadow-2xl flex flex-col p-6 gap-5">
+          <div className="flex justify-between items-center">
+            <div className="h-4 w-24 bg-gray-100 rounded-full animate-pulse" />
+            <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
           </div>
-          <div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
-          <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
-          <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
-          <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-8 w-3/4 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
+          <div className="h-48 w-full bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="flex flex-col gap-3 mt-2">
+            {[1,2,3,4].map(i => <div key={i} className="h-11 bg-gray-100 rounded-xl animate-pulse" />)}
+          </div>
           <div className="mt-auto h-12 bg-gray-100 rounded-2xl animate-pulse" />
         </motion.div>
       </div>
@@ -110,79 +102,98 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
     <div className="fixed inset-0 z-50 flex">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-[#172033]/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-        transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-        className="relative ml-auto w-full max-w-md bg-card h-full overflow-y-auto shadow-2xl flex flex-col"
+        transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+        className="relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col"
       >
-        {/* Gradient Header — cyan for rehab */}
-        <div className="relative p-6 pb-5 flex-shrink-0 bg-gradient-to-br from-[#0891B2] to-[#0E7490]">
-          <button onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-            <X size={15} />
-          </button>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-              <Dumbbell size={22} className="text-white" />
-            </div>
-            <div>
-              <span className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Реабилитационный центр</span>
-              <h2 className="text-white font-bold text-sm leading-tight mt-0.5">{center.name}</h2>
-            </div>
+        {/* Header */}
+        <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-gray-100">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full border bg-cyan-50 text-cyan-700 border-cyan-100">
+              Реабилитационный центр
+            </span>
+            <button onClick={onClose}
+              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors shrink-0">
+              <X size={15} />
+            </button>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-white/20 rounded-lg px-2.5 py-1">
-              <Star size={11} className="fill-yellow-300 text-yellow-300" />
-              <span className="text-white text-xs font-bold">{(center.rating ?? 0).toFixed(1)}</span>
-              <span className="text-white/60 text-[10px]">({center.reviewCount ?? 0} отз.)</span>
-            </div>
-            <div className={`flex items-center gap-1.5 bg-white/20 rounded-lg px-2.5 py-1 text-xs font-semibold ${center.open ? 'text-green-300' : 'text-red-300'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${center.open ? 'bg-green-300' : 'bg-red-400'}`} />
+          <h2 className="text-2xl font-black text-gray-900 leading-tight">{center.name || 'Центр реабилитации'}</h2>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <StarRating rating={center.rating} />
+            <span className="text-sm text-gray-400">({center.reviewCount || 0} отзывов)</span>
+            <span className={`flex items-center gap-1.5 text-sm font-semibold ${center.open ? 'text-green-600' : 'text-red-500'}`}>
+              <span className={`w-2 h-2 rounded-full ${center.open ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
               {center.open ? 'Открыто' : 'Закрыто'}
-            </div>
-            {center.capacity && (
-              <div className="flex items-center gap-1 bg-white/20 rounded-lg px-2.5 py-1">
-                <span className="text-white text-[10px]">{center.capacity} мест</span>
-              </div>
+            </span>
+            {center.distance != null && (
+              <span className="flex items-center gap-1 text-sm text-gray-500">
+                <MapPin size={12} className="text-gray-400" />
+                {center.distance} км
+              </span>
             )}
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 flex flex-col gap-5 p-5 overflow-y-auto">
-          {loadInfo && (
-            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${loadInfo.bg} ${loadInfo.border}`}>
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: loadInfo.dot }} />
-              <div>
-                <div className={`text-xs font-bold ${loadInfo.text}`}>{loadInfo.label}</div>
-                <div className="text-[10px] text-gray-500">
-                  {center.load === 'low' && 'Свободные места есть, ожидание минимальное'}
-                  {center.load === 'medium' && 'Умеренная загрузка, запись на ближайшие дни'}
-                  {center.load === 'high' && 'Высокий спрос, рекомендуем записаться заранее'}
-                </div>
+        {/* Load indicator */}
+        {loadInfo && (
+          <div className={`mx-5 mt-4 flex items-center gap-3 px-4 py-3 rounded-xl border ${loadInfo.bg} ${loadInfo.border}`}>
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: loadInfo.dot }} />
+            <div>
+              <div className={`text-sm font-bold ${loadInfo.text}`}>{loadInfo.label}</div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                {center.load === 'low' && 'Свободные места есть, ожидание минимальное'}
+                {center.load === 'medium' && 'Умеренная загрузка, запись на ближайшие дни'}
+                {center.load === 'high' && 'Высокий спрос, рекомендуем записаться заранее'}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Contact */}
-          <div className="flex flex-col gap-2 bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-4 text-xs text-[#64748B]">
-            <div className="flex items-center gap-2"><MapPin size={13} className="text-[#94A3B8] shrink-0" /><span>{center.address}</span></div>
-            <div className="flex items-center gap-2"><Phone size={13} className="text-[#94A3B8] shrink-0" />
-              <a href={`tel:${center.phone}`} className="text-[#0891B2] font-semibold">{center.phone && center.phone !== 'unknown' ? center.phone : 'Уточняйте по запросу'}</a>
+        {/* Body */}
+        <div className="flex-1 flex flex-col px-5 py-4 gap-5 overflow-y-auto">
+
+          {/* Contact info rows */}
+          <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <MapPin size={16} className="text-cyan-600 shrink-0" />
+                <span className="text-sm text-gray-800 leading-snug">{center.address || 'Адрес не указан'}</span>
+              </div>
+              <ChevronRight size={14} className="text-gray-300 shrink-0" />
             </div>
-            <div className="flex items-center gap-2"><Clock size={13} className="text-[#94A3B8] shrink-0" /><span>{center.workingHours}</span></div>
+            <div className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <Phone size={16} className="text-cyan-600 shrink-0" />
+                <a href={`tel:${center.phone}`} className="text-sm font-semibold text-cyan-600">
+                  {center.phone && center.phone !== 'unknown' ? center.phone : 'Уточняйте по запросу'}
+                </a>
+              </div>
+              <button onClick={copyPhone} className="p-1 hover:text-cyan-600 text-gray-400 transition-colors">
+                {copied ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
+              </button>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <Clock size={16} className="text-cyan-600 shrink-0" />
+                <span className="text-sm text-gray-800">{center.workingHours || 'Уточняйте по телефону'}</span>
+              </div>
+              <span className="text-xs text-gray-400 font-medium">Ежедневно</span>
+            </div>
           </div>
 
           {/* Programs */}
           {programs.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-[#172033] mb-2">Программы и услуги</div>
-              <div className="flex flex-wrap gap-1.5">
+              <h3 className="text-sm font-bold text-gray-900 mb-3">Программы реабилитации</h3>
+              <div className="flex flex-wrap gap-2">
                 {programs.map((p) => (
-                  <span key={p} className="text-[10px] px-2.5 py-1 rounded-lg bg-[rgb(6_182_212_/_0.08)] border border-[rgb(6_182_212_/_0.2)] text-[#0891B2] font-medium">{p}</span>
+                  <span key={p} className="text-xs font-medium px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                    {p}
+                  </span>
                 ))}
               </div>
             </div>
@@ -191,12 +202,12 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
           {/* Advantages */}
           {center.advantages && center.advantages.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-[#172033] mb-2">Преимущества</div>
-              <div className="flex flex-col gap-1.5">
-                {center.advantages.map((a) => (
-                  <div key={a} className="flex items-start gap-2 text-xs text-[#64748B]">
-                    <CheckCircle2 size={13} className="text-[#0891B2] shrink-0 mt-0.5" />
-                    <span>{a}</span>
+              <h3 className="text-sm font-bold text-gray-900 mb-3">Преимущества центра</h3>
+              <div className="flex flex-col gap-2">
+                {center.advantages.map((adv) => (
+                  <div key={adv} className="flex items-start gap-2.5">
+                    <CheckCircle2 size={15} className="text-green-500 shrink-0 mt-0.5" />
+                    <span className="text-sm text-gray-700 leading-snug">{adv}</span>
                   </div>
                 ))}
               </div>
@@ -206,19 +217,19 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
           {/* Reviews */}
           {center.reviews && center.reviews.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-[#172033] mb-2">Отзывы</div>
-              <div className="flex flex-col gap-2">
-                {center.reviews.map((rev, i) => (
-                  <div key={i} className="bg-[#F8FAFC] border border-[#DCE5EE] rounded-xl p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-semibold text-[#172033]">{rev.author}</span>
+              <h3 className="text-sm font-bold text-gray-900 mb-3">Отзывы</h3>
+              <div className="flex flex-col gap-3">
+                {center.reviews.slice(0, 2).map((rev, i) => (
+                  <div key={i} className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-bold text-gray-900">{rev.author || 'Пациент'}</span>
                       <div className="flex items-center gap-0.5">
-                        {Array.from({ length: rev.rating }).map((_, j) => (
-                          <Star key={j} size={9} className="fill-yellow-400 text-yellow-400" />
+                        {Array.from({ length: rev.rating || 0 }).map((_, j) => (
+                          <Star key={j} size={12} className="fill-yellow-400 text-yellow-400" />
                         ))}
                       </div>
                     </div>
-                    <p className="text-[11px] text-[#64748B] leading-relaxed">{rev.text}</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{rev.text || ''}</p>
                   </div>
                 ))}
               </div>
@@ -226,19 +237,122 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex-shrink-0 p-5 border-t border-[#DCE5EE] flex flex-col gap-2">
-          <a href={googleMapsUrl} target="_blank" rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200">
-            <Navigation2 size={15} /> Открыть в Google Maps
+        {/* Bottom Action Buttons */}
+        <div className="flex-shrink-0 px-5 pb-6 pt-4 border-t border-gray-100 flex flex-col gap-2.5">
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200"
+          >
+            <Navigation2 size={16} /> Открыть в Google Maps
           </a>
-          <a href={`tel:${center.phone}`}
-            className="w-full flex items-center justify-center gap-1.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all">
-            <Phone size={14} className="text-blue-600" /> Позвонить
+          <a
+            href={`tel:${center.phone}`}
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+          >
+            <Phone size={15} className="text-cyan-600" /> Позвонить по номеру
           </a>
         </div>
       </motion.div>
     </div>
+  );
+}
+
+/* ─── Rehab Card ────────────────────────────────────────────── */
+function RehabCard({
+  center, isActive, isFavorite,
+  onOpen, onToggleFavorite, onHover, onLeave
+}: {
+  center: RehabCenter;
+  isActive: boolean;
+  isFavorite: boolean;
+  onOpen: () => void;
+  onToggleFavorite: (e: React.MouseEvent) => void;
+  onHover: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3, transition: { duration: 0.15 } }}
+      onClick={onOpen}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
+      className={`bg-white rounded-2xl border cursor-pointer transition-all flex flex-col overflow-hidden shadow-sm ${
+        isActive
+          ? 'border-cyan-500 shadow-[0_0_0_3px_rgba(6,182,212,0.10)] shadow-md'
+          : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+      }`}
+    >
+      {/* Photo placeholder */}
+      <div className="relative h-36 bg-gradient-to-br from-cyan-50 via-cyan-100 to-teal-50 flex items-center justify-center overflow-hidden">
+        <div className="w-16 h-16 rounded-2xl bg-cyan-200/60 flex items-center justify-center">
+          <Dumbbell size={28} className="text-cyan-600" />
+        </div>
+        {/* Status badge */}
+        <div className="absolute top-2.5 left-2.5 flex gap-1.5">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-600 text-white">
+            Реабилитация
+          </span>
+          {center.open !== undefined && (
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+              center.open ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full inline-block ${center.open ? 'bg-green-500 animate-pulse' : 'bg-red-400'}`} />
+              {center.open ? 'Открыто' : 'Закрыто'}
+            </span>
+          )}
+        </div>
+        {/* Favorite button */}
+        <button
+          onClick={onToggleFavorite}
+          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+        >
+          <Heart size={13} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
+        </button>
+      </div>
+
+      {/* Card body */}
+      <div className="flex flex-col gap-2 p-4">
+        <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">{center.name || 'Центр'}</h3>
+
+        {/* Rating + distance */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <StarRating rating={center.rating} />
+          <span className="text-xs text-gray-400">{center.reviewCount || 0} отз.</span>
+          {center.distance != null && (
+            <span className="flex items-center gap-0.5 text-xs text-gray-500 font-medium ml-auto">
+              <MapPin size={10} className="text-gray-400" />
+              {center.distance} км
+            </span>
+          )}
+        </div>
+
+        {/* Programs chips */}
+        <div className="flex flex-wrap gap-1.5">
+          {(center.programs ?? center.services ?? []).slice(0, 3).map((p) => (
+            <span key={p} className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 border border-cyan-100">
+              {p}
+            </span>
+          ))}
+          {(center.programs ?? center.services ?? []).length > 3 && (
+            <span className="text-[11px] px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 border border-gray-200">
+              +{(center.programs ?? center.services ?? []).length - 3}
+            </span>
+          )}
+        </div>
+
+        {/* Open button */}
+        <button
+          onClick={onOpen}
+          className="mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-cyan-600 bg-cyan-50 hover:bg-cyan-100 border border-cyan-100 transition-all"
+        >
+          Подробнее <ChevronRight size={12} />
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
@@ -259,18 +373,6 @@ export default function RehabView() {
     } catch (_) {}
   }, []);
 
-  useEffect(() => {
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      const first = enriched.find((c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.address.toLowerCase().includes(q) ||
-        (c.programs ?? c.services ?? []).some((s: string) => s.toLowerCase().includes(q))
-      );
-      if (first) setActiveRehabId(first.id);
-    }
-  }, [search]);
-
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
@@ -290,7 +392,8 @@ export default function RehabView() {
       const matchSearch =
         c.name.toLowerCase().includes(q) ||
         c.address.toLowerCase().includes(q) ||
-        (c.programs ?? c.services ?? []).some((s: string) => s.toLowerCase().includes(q));
+        (c.programs ?? c.services ?? []).some((s: string) => s.toLowerCase().includes(q)) ||
+        (c.categories ?? []).some((cat: string) => cat.toLowerCase().includes(q));
       const matchCat = category === 'Все' || (c.categories ?? []).includes(category);
       return matchSearch && matchCat;
     })
@@ -311,156 +414,106 @@ export default function RehabView() {
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
-      {/* Left */}
-      <div className="flex-1 overflow-y-auto p-5 lg:p-6 lg:max-w-[56%] flex flex-col gap-4">
+      {/* Left: List */}
+      <div className="flex-1 overflow-y-auto lg:max-w-[56%] flex flex-col">
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-[#172033]">Реабилитационные центры</h2>
-            <p className="text-xs text-[#64748B] mt-0.5">
-              Реабилитационные центры Шымкента
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#94A3B8]" />
-              <input type="text" placeholder="Поиск..." value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 py-2 text-xs rounded-xl border border-[#DCE5EE] bg-card w-40 focus:outline-none focus:border-[#0891B2] transition-all" />
+        <div className="px-5 pt-5 pb-4 border-b border-gray-100 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Реабилитационные центры</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Поиск специализированных центров Шымкента</p>
             </div>
-            <div className="flex rounded-xl border border-[#DCE5EE] bg-[#EEF3F8] p-0.5 text-xs">
+          </div>
+
+          {/* Prominent search */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Поиск реабилитационных программ, центров, услуг..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all placeholder-gray-400"
+            />
+            {search && (
+              <button onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-300 hover:bg-gray-400 flex items-center justify-center transition-colors">
+                <X size={11} className="text-white" />
+              </button>
+            )}
+          </div>
+
+          {/* Category filters scroll */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <SlidersHorizontal size={13} className="text-gray-400 shrink-0" />
+            <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar shrink-0 max-w-[calc(100%-80px)]">
+              {CATEGORY_FILTERS.map((cat) => (
+                <button key={cat} onClick={() => setCategory(cat)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all border whitespace-nowrap ${
+                    category === cat
+                      ? 'bg-cyan-600 text-white border-transparent shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <div className="ml-auto flex rounded-xl border border-gray-200 bg-gray-50 p-0.5 text-xs">
               {(['rating', 'distance'] as const).map((s) => (
                 <button key={s} onClick={() => setSortBy(s)}
-                  className={`px-2.5 py-1 rounded-lg font-medium transition-all ${sortBy === s ? 'bg-card text-[#172033] shadow-sm' : 'text-[#64748B]'}`}>
+                  className={`px-3 py-1 rounded-lg font-medium transition-all ${sortBy === s ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
                   {s === 'rating' ? 'Рейтинг' : 'Расстояние'}
                 </button>
               ))}
             </div>
           </div>
-        </motion.div>
 
-        {/* Category scroll filters */}
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal size={13} className="text-[#94A3B8] shrink-0" />
-          <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-            {CATEGORY_FILTERS.map((cat) => (
-              <button key={cat} onClick={() => setCategory(cat)}
-                className={`shrink-0 px-3 py-1.5 rounded-xl font-medium transition-all border whitespace-nowrap ${
-                  category === cat
-                    ? 'bg-[#0891B2] text-white border-transparent'
-                    : 'bg-card text-[#64748B] border-[#DCE5EE] hover:border-[#B8CADF]'
-                }`}>
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Cards */}
-        <div className="grid sm:grid-cols-2 gap-3">
-          {filtered.map((rehab, i) => (
-            <motion.div
-              key={rehab.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileHover={{ y: -5, scale: 1.015, transition: { duration: 0.18 } }}
-              transition={{ duration: 0.25, delay: i * 0.04 }}
-              onClick={() => setActiveRehabId(rehab.id)}
-              onMouseEnter={() => setHoveredRehabId(rehab.id)}
-              onMouseLeave={() => setHoveredRehabId(null)}
-              className={`bg-card rounded-2xl border p-4 shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] cursor-pointer transition-all flex flex-col gap-3 ${
-                activeRehabId === rehab.id
-                  ? 'border-[#0891B2] shadow-[0_0_0_3px_rgba(6,182,212,0.12)]'
-                  : 'border-[#DCE5EE] hover:shadow-md hover:border-[#B8CADF]'
-              }`}
-            >
-              {/* Top */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                    <span className={`text-[9px] font-semibold flex items-center gap-0.5 ${rehab.open ? 'text-green-600' : 'text-red-500'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full inline-block ${rehab.open ? 'bg-green-500' : 'bg-red-400'}`} />
-                      {rehab.open ? 'Открыто' : 'Закрыто'}
-                    </span>
-                    {rehab.capacity && (
-                      <span className="text-[9px] text-[#94A3B8]">{rehab.capacity} мест</span>
-                    )}
-                  </div>
-                  <h3 className="text-sm font-bold text-[#172033] leading-tight">{rehab.name}</h3>
-                </div>
-                <button onClick={(e) => toggleFavorite(rehab.id, e)}
-                  className="shrink-0 p-1.5 rounded-lg hover:bg-[#EEF3F8] transition-colors">
-                  <Heart size={13} className={favorites.includes(rehab.id) ? 'fill-red-500 text-red-500' : 'text-[#94A3B8]'} />
-                </button>
-              </div>
-
-              {/* Rating + distance */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <StarRating rating={rehab.rating} />
-                <span className="text-[10px] text-[#94A3B8]">{rehab.reviewCount ?? 0} отзывов</span>
-                {rehab.distance != null && (
-                  <span className="flex items-center gap-0.5 text-[10px] text-[#64748B] font-medium">
-                    <MapPin size={9} className="text-[#94A3B8]" />{rehab.distance} км
-                  </span>
-                )}
-              </div>
-
-              <LoadBadge load={rehab.load} />
-
-              {/* Programs */}
-              <div className="flex flex-wrap gap-1">
-                {(rehab.programs ?? rehab.services ?? []).slice(0, 3).map((p: string) => (
-                  <span key={p} className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[rgb(6_182_212_/_0.07)] text-[#0891B2] border border-[rgb(6_182_212_/_0.15)]">{p}</span>
-                ))}
-                {(rehab.programs ?? rehab.services ?? []).length > 3 && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#EEF3F8] text-[#94A3B8]">+{(rehab.programs ?? rehab.services ?? []).length - 3}</span>
-                )}
-              </div>
-
-              {/* Badges */}
-              {rehab.badges && rehab.badges.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {rehab.badges.map((b) => (
-                    <span key={b} className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 border border-cyan-100">{b}</span>
-                  ))}
-                </div>
-              )}
-
-              {/* Buttons */}
-              <div className="flex gap-2 mt-auto pt-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setDrawerRehab(rehab); }}
-                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold text-[#0891B2] bg-[rgb(6_182_212_/_0.07)] hover:bg-[rgb(6_182_212_/_0.12)] border border-[rgb(6_182_212_/_0.2)] transition-all">
-                  Подробнее <ChevronRight size={11} />
-                </button>
-                <a href={buildGoogleMapsUrl(rehab.lat, rehab.lng)} target="_blank" rel="noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all">
-                  <Navigation2 size={11} /> Маршрут
-                </a>
-              </div>
-            </motion.div>
-          ))}
-          {filtered.length === 0 && (
-            <div className="col-span-2 text-center py-12 text-[#94A3B8] text-sm">Центры не найдены</div>
+          {/* Results count */}
+          {search && (
+            <p className="text-xs text-gray-500">
+              Найдено: <span className="font-bold text-gray-800">{filtered.length}</span> центров
+            </p>
           )}
         </div>
 
-        {/* Database last updated footer */}
-        <div className="text-[10px] text-gray-400 mt-6 pt-4 border-t border-[#EEF3F8] text-center">
-          Данные клиник обновлены: Июль 2026
+        {/* Cards grid */}
+        <div className="p-5">
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <Search size={32} className="mx-auto mb-3 opacity-40" />
+              <p className="text-sm font-medium">Центры не найдены</p>
+              <p className="text-xs mt-1">Попробуйте изменить запрос</p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {filtered.map((rehab) => (
+                <RehabCard
+                  key={rehab.id}
+                  center={rehab}
+                  isActive={activeRehabId === rehab.id}
+                  isFavorite={favorites.includes(rehab.id)}
+                  onOpen={() => { setActiveRehabId(rehab.id); setDrawerRehab(rehab); }}
+                  onToggleFavorite={(e) => toggleFavorite(rehab.id, e)}
+                  onHover={() => setHoveredRehabId(rehab.id)}
+                  onLeave={() => setHoveredRehabId(null)}
+                />
+              ))}
+            </div>
+          )}
+          <div className="text-[10px] text-gray-400 mt-6 pt-4 border-t border-gray-100 text-center">
+            Данные центров обновлены: Июль 2026
+          </div>
         </div>
       </div>
 
       {/* Right: Map */}
-      <div className="lg:flex-1 h-80 lg:h-full border-t lg:border-t-0 lg:border-l border-[#DCE5EE] relative bg-[#EEF3F8]">
-        <div className="absolute top-3 left-3 z-10 glass px-3 py-1.5 rounded-xl text-xs font-medium text-[#172033] shadow-card-sm flex items-center gap-1.5">
-          <MapPin size={11} className="text-[#0891B2]" /> Шымкент, Казахстан
+      <div className="lg:flex-1 h-80 lg:h-full border-t lg:border-t-0 lg:border-l border-gray-200 relative bg-gray-50">
+        <div className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur px-3 py-1.5 rounded-xl text-xs font-medium text-gray-700 shadow-sm flex items-center gap-1.5 border border-gray-200">
+          <MapPin size={11} className="text-cyan-600" /> Шымкент, Казахстан
         </div>
         {search && (
-          <div className="absolute top-3 right-3 z-10 glass px-3 py-1.5 rounded-xl text-xs font-semibold text-[#0891B2] shadow-card-sm">
+          <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur px-3 py-1.5 rounded-xl text-xs font-semibold text-cyan-600 shadow-sm border border-gray-200">
             Найдено: {filtered.length}
           </div>
         )}
@@ -479,7 +532,9 @@ export default function RehabView() {
 
       {/* Drawer */}
       <AnimatePresence>
-        {drawerRehab && <RehabDrawer center={drawerRehab} onClose={() => setDrawerRehab(null)} />}
+        {drawerRehab && (
+          <RehabDrawer center={drawerRehab} onClose={() => setDrawerRehab(null)} />
+        )}
       </AnimatePresence>
     </div>
   );

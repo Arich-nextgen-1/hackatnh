@@ -161,15 +161,24 @@ export default function HomeView() {
 
   // Parse `<route>...</route>` from message
   const parseRouteContent = (content: string) => {
-    const match = content.match(/<route>([\s\S]*?)<\/route>/);
-    if (!match) return { cleanText: content, route: null };
+    // Globally remove literal word 'undefined' (case-insensitive) that AI might append
+    let sanitizedContent = content;
+    if (typeof sanitizedContent === 'string') {
+      sanitizedContent = sanitizedContent
+        .replace(/\bundefined\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    const match = sanitizedContent.match(/<route>([\s\S]*?)<\/route>/);
+    if (!match) return { cleanText: sanitizedContent, route: null };
     try {
       const routeData = JSON.parse(match[1].trim());
-      const cleanText = content.replace(/<route>[\s\S]*?<\/route>/, '').trim();
+      const cleanText = sanitizedContent.replace(/<route>[\s\S]*?<\/route>/, '').trim();
       return { cleanText, route: sanitizeRoute(routeData) };
     } catch (e) {
       console.error('Failed to parse route JSON:', e);
-      return { cleanText: content, route: null };
+      return { cleanText: sanitizedContent, route: null };
     }
   };
 
