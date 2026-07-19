@@ -58,10 +58,15 @@ function TypewriterText({ text, speed = 25 }: { text: string; speed?: number }) 
 }
 
 function cleanUndefined(text: any): string {
-  if (!text) return '';
-  return String(text)
-    .replace(/undefined/gi, '')
-    .replace(/null/gi, '')
+  if (text === null || text === undefined) return '';
+  const s = String(text);
+  // Strip standalone literal 'undefined' (the JS keyword leaked into strings)
+  // Use word boundary so we don't mangle other words
+  return s
+    .replace(/\bundefined\b/gi, '')
+    .replace(/[ \t]+$/gm, '') // trim trailing spaces per line
+    .replace(/^[ \t]+/gm, '') // trim leading spaces per line
+    .replace(/\n{3,}/g, '\n\n') // collapse triple+ newlines
     .trim();
 }
 
@@ -115,9 +120,11 @@ export default function HomeView() {
       const restoreItem = window.localStorage.getItem('mediroute_active_restore');
       if (restoreItem) {
         const item = JSON.parse(restoreItem);
+        console.log('[Restore] raw item.response:', item.response);
+        const restoredResponse = cleanUndefined(item.response ?? '');
         setChatHistory([
-          { role: 'user', content: item.query },
-          { role: 'assistant', content: item.response }
+          { role: 'user', content: item.query ?? '' },
+          { role: 'assistant', content: restoredResponse }
         ]);
         setIsActiveChat(true);
         setCurrentRoute(item.route);
@@ -168,15 +175,13 @@ export default function HomeView() {
   };
 
   const parseRouteContent = (content: string) => {
-    // Globally remove literal word 'undefined' and 'null' (case-insensitive)
-    let sanitizedContent = content;
-    if (typeof sanitizedContent === 'string') {
-      sanitizedContent = sanitizedContent
-        .replace(/undefined/gi, '')
-        .replace(/null/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
+    // Remove literal word 'undefined' only (with word boundary so we don't break other words)
+    // The AI sometimes appends "undefined" at the very end when it has no route to provide
+    let sanitizedContent = typeof content === 'string' ? content : '';
+    sanitizedContent = sanitizedContent
+      .replace(/\bundefined\b/gi, '')
+      .replace(/[ \t]+$/gm, '')  // trailing spaces per line
+      .trim();
 
     const match = sanitizedContent.match(/<route>([\s\S]*?)<\/route>/);
     if (!match) return { cleanText: sanitizedContent, route: null };
