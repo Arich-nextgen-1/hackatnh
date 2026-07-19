@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import rehabsData from '@/data/rehabilitation.json';
 import dynamic from 'next/dynamic';
-import { build2GISUrl, buildGoogleMapsUrl, getDistanceFromHub, getLoadInfo, isOpenNow } from '@/lib/maps';
+import { buildGoogleMapsUrl, getDistanceFromHub, getLoadInfo, isOpenNow } from '@/lib/maps';
 
 const DashboardMap = dynamic(() => import('./DashboardMap'), { ssr: false });
 
@@ -61,7 +61,6 @@ function LoadBadge({ load }: { load?: 'low' | 'medium' | 'high' }) {
 
 /* ─── Drawer ─────────────────────────────────────────────────── */
 function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => void }) {
-  const twoGisUrl = build2GISUrl(center.lat, center.lng);
   const googleMapsUrl = buildGoogleMapsUrl(center.lat, center.lng);
   const loadInfo = center.load ? getLoadInfo(center.load) : null;
   const programs = center.programs ?? center.services ?? [];
@@ -229,19 +228,13 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
 
         {/* Actions */}
         <div className="flex-shrink-0 p-5 border-t border-[#DCE5EE] flex flex-col gap-2">
-          <div className="flex gap-2">
-            <a href={twoGisUrl} target="_blank" rel="noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-[#0891B2] hover:bg-[#0E7490] transition-all shadow-md">
-              <Navigation2 size={14} /> 2GIS
-            </a>
-            <a href={googleMapsUrl} target="_blank" rel="noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md">
-              <Navigation2 size={14} /> Google Maps
-            </a>
-          </div>
+          <a href={googleMapsUrl} target="_blank" rel="noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200">
+            <Navigation2 size={15} /> Открыть в Google Maps
+          </a>
           <a href={`tel:${center.phone}`}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-[#0891B2] bg-[rgb(6_182_212_/_0.07)] border border-[rgb(6_182_212_/_0.2)] hover:bg-[rgb(6_182_212_/_0.12)] transition-all">
-            <Phone size={13} /> Позвонить
+            className="w-full flex items-center justify-center gap-1.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all">
+            <Phone size={14} className="text-blue-600" /> Позвонить
           </a>
         </div>
       </motion.div>
@@ -442,9 +435,9 @@ export default function RehabView() {
                   className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold text-[#0891B2] bg-[rgb(6_182_212_/_0.07)] hover:bg-[rgb(6_182_212_/_0.12)] border border-[rgb(6_182_212_/_0.2)] transition-all">
                   Подробнее <ChevronRight size={11} />
                 </button>
-                <a href={build2GISUrl(rehab.lat, rehab.lng)} target="_blank" rel="noreferrer"
+                <a href={buildGoogleMapsUrl(rehab.lat, rehab.lng)} target="_blank" rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold text-white bg-[#0891B2] hover:bg-[#0E7490] transition-all">
+                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all">
                   <Navigation2 size={11} /> Маршрут
                 </a>
               </div>

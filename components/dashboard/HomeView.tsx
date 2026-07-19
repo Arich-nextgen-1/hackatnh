@@ -8,7 +8,8 @@ import { getGrokRoutingResponse, GrokMessage } from '@/services/grok';
 import clinicsData from '@/data/clinics.json';
 import rehabsData from '@/data/rehabilitation.json';
 import dynamic from 'next/dynamic';
-import { build2GISUrl, buildGoogleMapsUrl, getDistanceFromHub } from '@/lib/maps';
+import { buildGoogleMapsUrl, getDistanceFromHub } from '@/lib/maps';
+import { sanitizeRoute } from '@/services/grok';
 
 import { useRouter } from 'next/navigation';
 
@@ -198,10 +199,11 @@ export default function HomeView() {
       ]);
 
       if (route) {
-        setCurrentRoute(route);
-        saveToHistory(query, cleanText, route);
-        if (route.clinics && route.clinics.length > 0) {
-          setActiveClinicId(route.clinics[0]);
+        const cleanRoute = sanitizeRoute(route) ?? route;
+        setCurrentRoute(cleanRoute);
+        saveToHistory(query, cleanText, cleanRoute);
+        if (cleanRoute.clinics && cleanRoute.clinics.length > 0) {
+          setActiveClinicId(cleanRoute.clinics[0]);
         }
       }
     } catch (error: any) {
@@ -235,12 +237,13 @@ export default function HomeView() {
       ]);
 
       if (route) {
-        setCurrentRoute(route);
+        const cleanRoute = sanitizeRoute(route) ?? route;
+        setCurrentRoute(cleanRoute);
         // Find the very first user message for history preview
         const firstQuery = updatedHistory.find(m => m.role === 'user')?.content || reply;
-        saveToHistory(firstQuery, cleanText, route);
-        if (route.clinics && route.clinics.length > 0) {
-          setActiveClinicId(route.clinics[0]);
+        saveToHistory(firstQuery, cleanText, cleanRoute);
+        if (cleanRoute.clinics && cleanRoute.clinics.length > 0) {
+          setActiveClinicId(cleanRoute.clinics[0]);
         }
       }
     } catch (error: any) {
@@ -669,7 +672,7 @@ export default function HomeView() {
                       </div>
                       <div>
                         <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Специалист</div>
-                        <div className="font-bold text-blue-600 mt-0.5">{currentRoute.specialist ?? 'Не определён'}</div>
+                        <div className="font-bold text-blue-600 mt-0.5">{currentRoute.specialist || 'Специалист'}</div>
                       </div>
                       <div>
                         <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Дата выдачи</div>
@@ -697,7 +700,7 @@ export default function HomeView() {
                     {/* Why this specialist checklist */}
                     <div className="bg-[#F0FDF4] rounded-2xl p-4 border border-[#DCFCE7] flex flex-col gap-2">
                       <div className="text-[9px] text-green-700 font-bold uppercase tracking-wider">
-                        Почему {currentRoute.specialist ?? 'этот специалист'}?
+                        Почему {currentRoute.specialist || 'этот специалист'}?
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                         {(currentRoute.specialist_reasons ?? [
@@ -827,7 +830,7 @@ export default function HomeView() {
                                 <div className="flex flex-col gap-1 text-[9.5px] text-gray-500 font-medium pb-2 border-t border-[#EEF3F8] pt-2">
                                   <div className="flex items-center gap-1">
                                     <span className="text-emerald-500 font-bold">✓</span>
-                                    <span>Принимает {currentRoute.specialist ?? 'специалиста'}</span>
+                                    <span>Принимает {currentRoute.specialist || 'специалиста'}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <span className="text-emerald-500 font-bold">✓</span>
@@ -886,12 +889,12 @@ export default function HomeView() {
                                 )}
                               </div>
                               
-                              {/* 2GIS route + address */}
+                              {/* Google Maps route + rating */}
                               <div className="flex items-center justify-between text-[9.5px] text-[#94A3B8] border-t border-[#F1F5F9] pt-2 mt-auto">
                                 <span className="flex items-center gap-0.5"><Star size={10} className="fill-yellow-500 text-yellow-500" /> {(clinic.rating ?? 0).toFixed(1)}</span>
                                 {clinic.lat && (
                                   <a
-                                    href={build2GISUrl(clinic.lat, clinic.lng)}
+                                    href={buildGoogleMapsUrl(clinic.lat, clinic.lng)}
                                     target="_blank" rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
                                     className="flex items-center gap-0.5 text-[#2563EB] font-semibold hover:underline"
@@ -962,7 +965,7 @@ export default function HomeView() {
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-wider text-white/60 mb-0.5">Следующий шаг</div>
                         <div className="text-sm font-bold">
-                          Запишитесь к {currentRoute.specialist ?? 'специалисту'} — желательно сегодня.
+                          Запишитесь к {currentRoute.specialist || 'специалисту'} — желательно сегодня.
                         </div>
                       </div>
                     </motion.div>
@@ -991,29 +994,19 @@ export default function HomeView() {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="grid sm:grid-cols-3 gap-3 border-t border-gray-100 pt-5">
+                  <div className="grid sm:grid-cols-2 gap-3 border-t border-gray-100 pt-5">
                     {recommendedClinics[0] && (
-                      <>
-                        <a 
-                          href={build2GISUrl(recommendedClinics[0].lat, recommendedClinics[0].lng)} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex items-center justify-center gap-2 py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all text-center"
-                        >
-                          <Navigation2 size={14} /> Маршрут в 2GIS
-                        </a>
-                        <a 
-                          href={buildGoogleMapsUrl(recommendedClinics[0].lat, recommendedClinics[0].lng)} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all text-center"
-                        >
-                          <Navigation2 size={14} /> Google Maps
-                        </a>
-                      </>
+                      <a 
+                        href={buildGoogleMapsUrl(recommendedClinics[0].lat, recommendedClinics[0].lng)} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="flex items-center justify-center gap-2 py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all text-center"
+                      >
+                        <Navigation2 size={14} /> Открыть в Google Maps
+                      </a>
                     )}
                     <a 
-                      href={`tel:${recommendedClinics[0]?.phone ?? '103'}`}
+                      href={`tel:${recommendedClinics[0]?.phone || '103'}`}
                       className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-[#DCE5EE] hover:bg-[#EEF3F8]/50 text-gray-700 rounded-2xl text-xs font-bold transition-all text-center"
                     >
                       <Phone size={14} className="text-[#2563EB]" /> Позвонить

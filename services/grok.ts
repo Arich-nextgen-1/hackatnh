@@ -148,3 +148,34 @@ export async function getGrokRoutingResponse(
     throw error;
   }
 }
+
+/**
+ * Recursively removes string "undefined" / "null" / whitespace-only values
+ * from a parsed AI route object so that JSX fallbacks (?? / ||) work correctly.
+ */
+export function sanitizeRoute(obj: any): any {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) return obj.map(sanitizeRoute).filter((v) => v !== null);
+  if (typeof obj === 'object') {
+    const clean: Record<string, any> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      clean[k] = sanitizeRoute(v);
+    }
+    return clean;
+  }
+  if (typeof obj === 'string') {
+    const trimmed = obj.trim();
+    if (
+      trimmed === '' ||
+      trimmed.toLowerCase() === 'undefined' ||
+      trimmed.toLowerCase() === 'null' ||
+      trimmed.toLowerCase() === 'не определён' ||
+      trimmed.toLowerCase() === 'не определено'
+    ) {
+      return null;
+    }
+    return trimmed;
+  }
+  return obj;
+}
+
