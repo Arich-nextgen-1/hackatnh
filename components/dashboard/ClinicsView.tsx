@@ -44,7 +44,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 /* ─── Drawer ─────────────────────────────────────────────────── */
-function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void }) {
+function ClinicDrawer({ clinic, onClose, onShowOnMap }: { clinic: Clinic; onClose: () => void; onShowOnMap: () => void }) {
   const googleMapsUrl = buildGoogleMapsUrl(clinic.lat, clinic.lng, clinic.address);
   const loadInfo = clinic.load ? getLoadInfo(clinic.load) : null;
   const [copied, setCopied] = useState(false);
@@ -80,7 +80,7 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 340, damping: 36 }}
         className="relative z-10 bg-white w-full max-h-[90vh] rounded-t-[28px] flex flex-col overflow-hidden
-                   lg:translate-y-0 lg:rounded-none lg:rounded-l-3xl lg:max-h-full lg:h-full lg:w-[420px] lg:max-w-[420px]"
+                   lg:translate-y-0 lg:rounded-none lg:rounded-l-3xl lg:max-h-full lg:h-full lg:w-[760px] lg:max-w-[760px]"
         style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         {/* Mobile drag handle */}
@@ -156,167 +156,172 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
         )}
 
         {/* Body — scrollable */}
-        <div className="flex-1 flex flex-col px-5 py-4 gap-5 overflow-y-auto">
+        <div className="flex-1 flex flex-col lg:grid lg:grid-cols-2 px-5 py-4 gap-5 lg:gap-6 overflow-y-auto">
 
-          {/* Contact info rows */}
-          <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <MapPin size={15} className="text-blue-600 shrink-0" />
-                <span className="text-xs text-gray-800 leading-snug">{clinic.address || 'Адрес не указан'}</span>
-              </div>
-              <ChevronRight size={13} className="text-gray-300 shrink-0" />
-            </div>
-            <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Phone size={15} className="text-blue-600 shrink-0" />
-                <a href={`tel:${clinic.phone}`} className="text-xs font-semibold text-blue-600">
-                  {clinic.phone || 'Нет телефона'}
-                </a>
-              </div>
-              <button onClick={copyPhone} className="p-1 hover:text-blue-600 text-gray-400 transition-colors">
-                {copied ? <CheckCircle2 size={13} className="text-green-500" /> : <Copy size={13} />}
-              </button>
-            </div>
-            {clinic.phone && (
+          {/* Left Column: Contact details and Price list */}
+          <div className="flex flex-col gap-5">
+            {/* Contact info rows */}
+            <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <MessageCircle size={15} className="text-[#25D366] shrink-0" />
-                  <a href={`https://wa.me/${clinic.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#25D366] hover:underline">
-                    Связаться в WhatsApp
-                  </a>
+                  <MapPin size={15} className="text-blue-600 shrink-0" />
+                  <span className="text-xs text-gray-800 leading-snug">{clinic.address || 'Адрес не указан'}</span>
                 </div>
-                <ExternalLink size={12} className="text-gray-300 shrink-0" />
+                <ChevronRight size={13} className="text-gray-300 shrink-0" />
               </div>
-            )}
-            <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Clock size={15} className="text-blue-600 shrink-0" />
-                <span className="text-xs text-gray-800">{clinic.workingHours || 'Уточняйте по телефону'}</span>
-              </div>
-              <span className="text-[10px] text-gray-400 font-medium">Ежедневно</span>
-            </div>
-            {clinic.website && (
               <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <Globe size={15} className="text-blue-600 shrink-0" />
-                  <a href={clinic.website} target="_blank" rel="noreferrer"
-                    className="text-xs text-blue-600 hover:underline truncate max-w-[180px]">
-                    {clinic.website.replace(/^https?:\/\//, '')}
+                  <Phone size={15} className="text-blue-600 shrink-0" />
+                  <a href={`tel:${clinic.phone}`} className="text-xs font-semibold text-blue-600">
+                    {clinic.phone || 'Нет телефона'}
                   </a>
                 </div>
-                <ExternalLink size={12} className="text-gray-300 shrink-0" />
+                <button onClick={copyPhone} className="p-1 hover:text-blue-600 text-gray-400 transition-colors">
+                  {copied ? <CheckCircle2 size={13} className="text-green-500" /> : <Copy size={13} />}
+                </button>
+              </div>
+              {clinic.phone && (
+                <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <MessageCircle size={15} className="text-[#25D366] shrink-0" />
+                    <a href={`https://wa.me/${clinic.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#25D366] hover:underline">
+                      Связаться в WhatsApp
+                    </a>
+                  </div>
+                  <ExternalLink size={12} className="text-gray-300 shrink-0" />
+                </div>
+              )}
+              <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Clock size={15} className="text-blue-600 shrink-0" />
+                  <span className="text-xs text-gray-800">{clinic.workingHours || 'Уточняйте по телефону'}</span>
+                </div>
+                <span className="text-[10px] text-gray-400 font-medium">Ежедневно</span>
+              </div>
+              {clinic.website && (
+                <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Globe size={15} className="text-blue-600 shrink-0" />
+                    <a href={clinic.website} target="_blank" rel="noreferrer"
+                      className="text-xs text-blue-600 hover:underline truncate max-w-[180px]">
+                      {clinic.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                  <ExternalLink size={12} className="text-gray-300 shrink-0" />
+                </div>
+              )}
+            </div>
+
+            {/* Price list */}
+            {clinic.price_list && clinic.price_list.length > 0 && (
+              <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
+                <h3 className="text-sm font-bold text-emerald-900 mb-3 flex items-center gap-1.5">
+                  <Banknote size={15} className="text-emerald-600" /> Цены на услуги
+                </h3>
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto scrollbar-thin">
+                  {clinic.price_list.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs border-b border-dashed border-gray-200 pb-1.5 last:border-0 last:pb-0">
+                      <span className="text-gray-600 font-medium text-left pr-2">{item.service}</span>
+                      <span className="font-bold text-emerald-700 whitespace-nowrap">{item.price.toLocaleString('ru-RU')} {item.currency}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Price list */}
-          {clinic.price_list && clinic.price_list.length > 0 && (
-            <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
-              <h3 className="text-sm font-bold text-emerald-900 mb-3 flex items-center gap-1.5">
-                <Banknote size={15} className="text-emerald-600" /> Цены на услуги
-              </h3>
-              <div className="flex flex-col gap-2 max-h-48 overflow-y-auto scrollbar-thin">
-                {clinic.price_list.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs border-b border-dashed border-gray-200 pb-1.5 last:border-0 last:pb-0">
-                    <span className="text-gray-600 font-medium text-left pr-2">{item.service}</span>
-                    <span className="font-bold text-emerald-700 whitespace-nowrap">{item.price.toLocaleString('ru-RU')} {item.currency}</span>
-                  </div>
-                ))}
+          {/* Right Column: Services, Advantages, Doctors, and Reviews */}
+          <div className="flex flex-col gap-5">
+            {/* Services */}
+            {clinic.services && clinic.services.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-2">Услуги</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {clinic.services.slice(0, 8).map((s) => (
+                    <span key={s} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                      {s}
+                    </span>
+                  ))}
+                  {clinic.services.length > 8 && (
+                    <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+                      +{clinic.services.length - 8}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-
-          {/* Services */}
-          {clinic.services && clinic.services.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Услуги</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {clinic.services.slice(0, 8).map((s) => (
-                  <span key={s} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                    {s}
-                  </span>
-                ))}
-                {clinic.services.length > 8 && (
-                  <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
-                    +{clinic.services.length - 8}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Advantages */}
-          {clinic.advantages && clinic.advantages.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Почему рекомендуем</h3>
-              <div className="flex flex-col gap-1.5">
-                {clinic.advantages.map((adv) => (
-                  <div key={adv} className="flex items-start gap-2">
-                    <CheckCircle2 size={14} className="text-green-500 shrink-0 mt-0.5" />
-                    <span className="text-xs text-gray-700 leading-snug">{adv}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Doctors */}
-          {clinic.doctors && clinic.doctors.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Специалисты</h3>
-              <div className="flex flex-col gap-2">
-                {clinic.doctors.map((doc) => (
-                  <div key={doc.name} className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-black text-blue-600">{doc.initials || '?'}</span>
+            {/* Advantages */}
+            {clinic.advantages && clinic.advantages.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-2">Почему рекомендуем</h3>
+                <div className="flex flex-col gap-1.5">
+                  {clinic.advantages.map((adv) => (
+                    <div key={adv} className="flex items-start gap-2">
+                      <CheckCircle2 size={14} className="text-green-500 shrink-0 mt-0.5" />
+                      <span className="text-xs text-gray-700 leading-snug">{adv}</span>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-gray-900">{doc.name || 'Врач'}</div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">{doc.specialty || 'Специализация не указана'}</div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Reviews */}
-          {clinic.reviews && clinic.reviews.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Отзывы</h3>
-              <div className="flex flex-col gap-2">
-                {clinic.reviews.slice(0, 2).map((rev, i) => (
-                  <div key={i} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-gray-900">{rev.author || 'Пациент'}</span>
-                      <div className="flex items-center gap-0.5">
-                        {Array.from({ length: rev.rating || 0 }).map((_, j) => (
-                          <Star key={j} size={11} className="fill-yellow-400 text-yellow-400" />
-                        ))}
+            {/* Doctors */}
+            {clinic.doctors && clinic.doctors.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-2">Специалисты</h3>
+                <div className="flex flex-col gap-2">
+                  {clinic.doctors.map((doc) => (
+                    <div key={doc.name} className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-black text-blue-600">{doc.initials || '?'}</span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-gray-900">{doc.name || 'Врач'}</div>
+                        <div className="text-[11px] text-gray-500 mt-0.5">{doc.specialty || 'Специализация не указана'}</div>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 leading-relaxed">{rev.text || ''}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Reviews */}
+            {clinic.reviews && clinic.reviews.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-2">Отзывы</h3>
+                <div className="flex flex-col gap-2">
+                  {clinic.reviews.slice(0, 2).map((rev, i) => (
+                    <div key={i} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-gray-900">{rev.author || 'Пациент'}</span>
+                        <div className="flex items-center gap-0.5">
+                          {Array.from({ length: rev.rating || 0 }).map((_, j) => (
+                            <Star key={j} size={11} className="fill-yellow-400 text-yellow-400" />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed">{rev.text || ''}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Bottom Action Buttons */}
-        <div className="flex-shrink-0 px-5 pt-3 border-t border-gray-100 flex flex-col gap-2"
+        <div className="flex-shrink-0 px-5 pt-3 border-t border-gray-100 flex flex-col lg:flex-row gap-2"
           style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-          <a
-            href={googleMapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-md active:scale-[0.97]"
+          <button
+            type="button"
+            onClick={onShowOnMap}
+            className="w-full lg:flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-md active:scale-[0.97]"
           >
-            <Navigation2 size={15} /> Маршрут Google Maps
-          </a>
-          <div className="flex gap-2">
+            <MapPin size={15} /> Показать на карте
+          </button>
+          <div className="flex gap-2 lg:flex-1">
             <a
               href={`tel:${clinic.phone}`}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
@@ -727,7 +732,7 @@ export default function ClinicsView() {
       {/* Drawer */}
       <AnimatePresence>
         {drawerClinic && (
-          <ClinicDrawer clinic={drawerClinic} onClose={() => setDrawerClinic(null)} />
+          <ClinicDrawer clinic={drawerClinic} onClose={() => setDrawerClinic(null)} onShowOnMap={() => setShowMapSheet(true)} />
         )}
       </AnimatePresence>
     </div>

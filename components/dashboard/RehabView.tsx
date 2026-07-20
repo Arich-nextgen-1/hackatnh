@@ -55,7 +55,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 /* ─── Drawer ─────────────────────────────────────────────────── */
-function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => void }) {
+function RehabDrawer({ center, onClose, onShowOnMap }: { center: RehabCenter; onClose: () => void; onShowOnMap: () => void }) {
   const googleMapsUrl = center.lat && center.lng ? buildGoogleMapsUrl(center.lat, center.lng, center.address) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(center.name + ' ' + center.address)}`;
   const loadInfo = center.load ? getLoadInfo(center.load) : null;
   const programs = center.programs ?? center.services ?? [];
@@ -287,14 +287,13 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
         {/* Bottom Action Buttons */}
         <div className="flex-shrink-0 px-5 pt-3 border-t border-gray-100 flex flex-col lg:flex-row gap-2"
           style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-          <a
-            href={googleMapsUrl}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={onShowOnMap}
             className="w-full lg:flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-md active:scale-[0.97]"
           >
-            <Navigation2 size={15} /> Маршрут Google Maps
-          </a>
+            <MapPin size={15} /> Показать на карте
+          </button>
           <div className="flex gap-2 lg:flex-1">
             <a
               href={`tel:${center.phone}`}
@@ -700,7 +699,7 @@ export default function RehabView() {
       {/* Drawer */}
       <AnimatePresence>
         {drawerRehab && (
-          <RehabDrawer center={drawerRehab} onClose={() => setDrawerRehab(null)} />
+          <RehabDrawer center={drawerRehab} onClose={() => setDrawerRehab(null)} onShowOnMap={() => setShowMapSheet(true)} />
         )}
       </AnimatePresence>
     </div>
