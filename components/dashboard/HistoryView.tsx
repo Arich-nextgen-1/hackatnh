@@ -28,14 +28,63 @@ function UrgencyBadge({ urgency }: { urgency?: string }) {
   return <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">🟢 Планово</span>;
 }
 
-function formatDate(iso: string) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return iso;
+function formatDate(raw: string) {
+  if (!raw) return '—';
+
+  // Try direct ISO parse first
+  let d = new Date(raw);
+
+  // If invalid, try Russian locale formats
+  if (isNaN(d.getTime())) {
+    // DD.MM.YYYY [г.] [, ] HH:MM
+    const matchTime = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s*г\.)?[,\s]+(\d{2}):(\d{2})/i);
+    if (matchTime) {
+      d = new Date(
+        parseInt(matchTime[3]), // year
+        parseInt(matchTime[2]) - 1, // month (0-indexed)
+        parseInt(matchTime[1]), // day
+        parseInt(matchTime[4]), // hours
+        parseInt(matchTime[5])  // minutes
+      );
+    } else {
+      // Just DD.MM.YYYY [г.]
+      const matchDate = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+      if (matchDate) {
+        d = new Date(
+          parseInt(matchDate[3]),
+          parseInt(matchDate[2]) - 1,
+          parseInt(matchDate[1])
+        );
+      }
+    }
   }
+
+  // Still invalid — return raw string or default
+  if (isNaN(d.getTime())) {
+    if (raw.toLowerCase().includes('invalid')) return '—';
+    return raw;
+  }
+
+  // Relative labels
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) {
+    return `Сегодня, ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  if (diffDays === 1) {
+    return `Вчера, ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  return d.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
+
 
 export default function HistoryView() {
   const [history, setHistory] = useState<SavedRoute[]>([]);

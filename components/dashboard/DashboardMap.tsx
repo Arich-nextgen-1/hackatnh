@@ -41,6 +41,24 @@ export default function DashboardMap({
   const [loaded, setLoaded] = useState(false);
   const [activeMarkerData, setActiveMarkerData] = useState<{ name: string; lat: number; lng: number } | null>(null);
 
+  // Load origin from localStorage or fallback to Shymkent, мкр Север 66/2
+  const getOriginCoords = (): [number, number] => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = window.localStorage.getItem('user_coords');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+            return [parsed.lat, parsed.lng];
+          }
+        }
+      } catch (e) {
+        console.error('[DashboardMap] Error parsing user_coords:', e);
+      }
+    }
+    return [42.3417, 69.5901];
+  };
+
   // Load Leaflet from CDN
   useEffect(() => {
     if (window.L) {
@@ -123,7 +141,23 @@ export default function DashboardMap({
     });
     markerInstancesRef.current = {};
 
-    // Custom Icon Definitions
+    const originCoords = getOriginCoords();
+
+    // Add user location marker
+    const originIcon = L.divIcon({
+      html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
+               <div style="position:absolute;top:50%;left:50%;width:24px;height:24px;border-radius:50%;background:#2563EB;opacity:0.35;animation:pulse-ring 1.4s ease-out infinite;"></div>
+               <div style="background-color:#2563EB;border-radius:50%;width:12px;height:12px;border:2.5px solid white;box-shadow:0 0 8px rgba(37,99,235,0.8);position:relative;z-index:2;"></div>
+             </div>`,
+      className: 'user-location-marker',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+    
+    L.marker(originCoords, { icon: originIcon }).addTo(mapRef.current)
+      .bindPopup('<div style="padding:6px 10px;font-weight:bold;font-size:11px;color:#172033;text-align:center;">Мое местоположение<br/><span style="font-weight:normal;font-size:9px;color:#64748B;">мкр. Север 66/2 (ориентир)</span></div>', { closeButton: false });
+
+    // Custom Icon Definitions for Clinics/Rehabs
     const createCustomIcon = (color: string, isActive: boolean, isHovered: boolean) => {
       const isHighlighted = isActive || isHovered;
       const shadowColor = color === '#10B981' ? 'rgba(16, 185, 129, 0.6)' : color === '#06B6D4' ? 'rgba(6, 182, 212, 0.6)' : 'rgba(37, 99, 235, 0.6)';
@@ -151,8 +185,8 @@ export default function DashboardMap({
       const icon = createCustomIcon(m.type === 'rehab' ? '#06B6D4' : m.type === 'private' ? '#10B981' : '#2563EB', isActive, isHovered);
       const marker = L.marker([m.lat, m.lng], { icon }).addTo(mapRef.current);
 
-      // Popup HTML
-      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=42.3417,69.5901&destination=${m.lat},${m.lng}&travelmode=driving`;
+      // Popup HTML using dynamic origin coords
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${m.lat},${m.lng}&travelmode=driving`;
       const popupHtml = `
         <div style="padding:12px 14px;min-width:200px;">
           <h4 style="margin:0 0 4px;font-weight:700;color:#172033;font-size:13px;line-height:1.3;">${m.name}</h4>
@@ -198,12 +232,11 @@ export default function DashboardMap({
       const marker = markerInstancesRef.current[activeMarkerId];
       const latLng = marker.getLatLng();
 
-      // IT Hub fixed coordinates (42.3417, 69.5901)
-      const itHubCoords = [42.3417, 69.5901];
+      const originCoords = getOriginCoords();
       const destCoords = [latLng.lat, latLng.lng];
 
       // Draw dashed blue route line
-      const polyline = L.polyline([itHubCoords, destCoords], {
+      const polyline = L.polyline([originCoords, destCoords], {
         color: '#2563EB',
         weight: 4.5,
         opacity: 0.8,
@@ -213,7 +246,7 @@ export default function DashboardMap({
       mapRef.current.routeLineInstance = polyline;
 
       // Fit map view to show the entire route with padding
-      const bounds = L.latLngBounds([itHubCoords, destCoords]);
+      const bounds = L.latLngBounds([originCoords, destCoords]);
       mapRef.current.fitBounds(bounds, { padding: [50, 50], animate: true });
 
       marker.openPopup();
@@ -242,6 +275,8 @@ export default function DashboardMap({
       window.removeEventListener('map-detail-click', handleDetailClick);
     };
   }, [onSelectMarker]);
+
+  const originCoords = getOriginCoords();
 
   return (
     <div className="w-full h-full relative" style={{ minHeight: '300px' }}>
@@ -278,7 +313,7 @@ export default function DashboardMap({
       {/* Floating route button — appears when a marker is active */}
       {activeMarkerData && (
         <a
-          href={`https://www.google.com/maps/dir/?api=1&origin=42.3417,69.5901&destination=${activeMarkerData.lat},${activeMarkerData.lng}&travelmode=driving`}
+          href={`https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${activeMarkerData.lat},${activeMarkerData.lng}&travelmode=driving`}
           target="_blank"
           rel="noreferrer"
           className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2563EB] text-white text-xs font-bold shadow-xl shadow-blue-300/50 hover:bg-[#1D4ED8] transition-all active:scale-[0.97] whitespace-nowrap"

@@ -1,12 +1,17 @@
 {
+  "id": "/",
   "name": "MediRoute AI",
   "short_name": "MediRoute",
-  "description": "AI помощник по подбору медицинских учреждений Шымкента.",
-  "start_url": "/dashboard",
+  "description": "AI помощник по подбору медицинских учреждений Шымкента. Быстрая маршрутизация пациентов.",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#EEF3F8",
   "theme_color": "#2563EB",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "lang": "ru",
+  "categories": ["medical", "health", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -31,6 +36,43 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "MediRoute AI — Панель управления"
+    },
+    {
+      "src": "/screenshots/narrow.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "MediRoute AI — Мобильный интерфейс"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Консультация",
+      "short_name": "AI",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Клиники",
+      "short_name": "Клиники",
+      "url": "/dashboard/clinics",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }

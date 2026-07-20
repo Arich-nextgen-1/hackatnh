@@ -93,6 +93,7 @@ export default function HomeView() {
   const [thinkStep, setThinkStep] = useState(0);
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
   const [whyNotOpen, setWhyNotOpen] = useState<Record<string, boolean>>({});
+  const [mobileViewTab, setMobileViewTab] = useState<'list' | 'map'>('list');
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -309,13 +310,7 @@ export default function HomeView() {
       
       const newItem = {
         id: crypto.randomUUID(),
-        date: new Date().toLocaleDateString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
+        date: new Date().toISOString(),
         query,
         response,
         route,
@@ -333,6 +328,7 @@ export default function HomeView() {
     setIsActiveChat(false);
     setCurrentRoute(null);
     setGrokError(null);
+    setMobileViewTab('list');
     setDescription('');
     setActiveClinicId(null);
   };
@@ -498,50 +494,50 @@ export default function HomeView() {
                 </span>
               </motion.div>
             )}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5">
               {chatHistory.map((msg, index) => {
                 const isLastMessage = index === chatHistory.length - 1;
                 const safeContent = cleanUndefined(msg.content);
                 return (
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                    initial={{ opacity: 0, scale: 0.8, y: 15 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 22 }}
                     className={`flex items-end gap-2 ${
                       msg.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
                     {msg.role === 'assistant' && (
-                      <div className="hidden sm:flex w-7 h-7 rounded-full bg-[#E0EEFF] items-center justify-center shrink-0 mb-1">
+                      <div className="hidden sm:flex w-7 h-7 rounded-full bg-[#E0EEFF] items-center justify-center shrink-0 mb-1 shadow-sm">
                         <Sparkles size={12} className="text-[#2563EB]" />
                       </div>
                     )}
                     <div
-                      className={`max-w-[80%] px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                      className={`max-w-[85%] sm:max-w-[70%] px-4 py-2.5 text-sm leading-relaxed ${
                         msg.role === 'user'
-                          ? 'bg-[#2563EB] text-white rounded-[20px] rounded-br-[4px]'
-                          : 'bg-white text-[#172033] border border-[#DCE5EE] rounded-[20px] rounded-bl-[4px]'
+                          ? 'bg-[#007AFF] text-white rounded-2xl rounded-br-sm'
+                          : 'bg-[#E9E9EB] text-[#1C1C1E] rounded-2xl rounded-bl-sm'
                       }`}
                     >
                       {msg.role === 'assistant' ? (
                         <>
-                          <div className="text-[10px] font-bold text-[#2563EB] mb-1">MediRoute AI</div>
+                          <div className="text-[10px] font-bold text-[#007AFF] mb-1">MediRoute AI</div>
                           {isLastMessage && !loading ? (
                             <TypewriterText text={safeContent} />
                           ) : (
                             <p className="whitespace-pre-line">{safeContent}</p>
                           )}
-                          <p className="text-[10px] text-red-500/70 font-medium mt-2 pt-2 border-t border-[#EEF3F8] leading-relaxed">
+                          <p className="text-[10px] text-gray-500 font-medium mt-2 pt-2 border-t border-[#DCE5EE]/40 leading-relaxed">
                             AI не заменяет врача и не ставит диагноз. Рекомендации носят исключительно информационный характер.
                           </p>
                         </>
                       ) : (
-                        <p className="whitespace-pre-line">{safeContent}</p>
+                        <p className="whitespace-pre-line text-white">{safeContent}</p>
                       )}
                     </div>
                     {msg.role === 'user' && (
-                      <div className="hidden sm:flex w-7 h-7 rounded-full gradient-primary items-center justify-center text-white text-xs font-bold shrink-0 mb-1">
+                      <div className="hidden sm:flex w-7 h-7 rounded-full bg-gradient-to-tr from-[#007AFF] to-[#00C6FF] items-center justify-center text-white text-xs font-bold shrink-0 mb-1 shadow-sm">
                         {profile?.name?.charAt(0).toUpperCase() ?? 'П'}
                       </div>
                     )}
@@ -844,14 +840,40 @@ export default function HomeView() {
                     </div>
                   )}
 
-                  {/* Recommended Clinics with Categorized Badges */}
+                  {/* Recommended Clinics with Categorized Badges & Mobile View Switcher */}
                   {recommendedClinics.length > 0 && (
                     <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Сравнительный анализ клиник</h4>
-                        <span className="text-[9.5px] font-semibold text-[#2563EB]">Кликните на карточку, чтобы подсветить на карте</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#EEF3F8] pb-3">
+                        <div className="flex items-center justify-between w-full sm:w-auto">
+                          <h4 className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Сравнительный анализ клиник</h4>
+                          
+                          {/* Segmented Control Switcher for Mobile */}
+                          <div className="flex sm:hidden bg-gray-100 p-0.5 rounded-xl border border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => setMobileViewTab('list')}
+                              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
+                                mobileViewTab === 'list' ? 'bg-white text-[#2563EB] shadow-sm' : 'text-gray-500'
+                              }`}
+                            >
+                              Список
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMobileViewTab('map')}
+                              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
+                                mobileViewTab === 'map' ? 'bg-white text-[#2563EB] shadow-sm' : 'text-gray-500'
+                              }`}
+                            >
+                              Карта
+                            </button>
+                          </div>
+                        </div>
+                        <span className="hidden sm:inline text-[9.5px] font-semibold text-[#2563EB]">Кликните на карточку, чтобы подсветить на карте</span>
                       </div>
-                      <div className="grid sm:grid-cols-3 gap-3">
+
+                      {/* Clinics List Grid */}
+                      <div className={`${mobileViewTab === 'list' ? 'grid' : 'hidden sm:grid'} grid-cols-1 sm:grid-cols-3 gap-4`}>
                         {recommendedClinics.map((clinic: any, ci: number) => {
                           const badgeText = ci === 0 ? 'Лучший вариант' : ci === 1 ? 'Альтернатива' : 'Ближайшая';
                           const badgeClass = ci === 0 
@@ -865,15 +887,16 @@ export default function HomeView() {
                               key={clinic.id} 
                               whileHover={{ y: -5, scale: 1.02 }}
                               onClick={() => setActiveClinicId(clinic.id)}
-                              className={`bg-white border rounded-2xl p-4 flex flex-col justify-between relative shadow-sm cursor-pointer transition-all duration-300 ${
+                              className={`bg-white border rounded-2xl p-5 flex flex-col justify-between relative shadow-sm cursor-pointer transition-all duration-300 active:scale-[0.98] min-h-[44px] ${
                                 activeClinicId === clinic.id ? 'border-blue-600 bg-blue-50/10 shadow-md scale-[1.01]' : 'border-[#DCE5EE]'
                               }`}
                             >
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleFavorite(clinic.id); }}
-                                className="absolute top-3 right-3 text-[#94A3B8] hover:text-red-500 transition-colors"
+                                className="absolute top-3.5 right-3.5 text-[#94A3B8] hover:text-red-500 transition-colors p-1"
+                                style={{ minWidth: '32px', minHeight: '32px' }}
                               >
-                                <Heart size={14} className={favorites.includes(clinic.id) ? 'fill-red-500 text-red-500' : ''} />
+                                <Heart size={15} className={favorites.includes(clinic.id) ? 'fill-red-500 text-red-500' : ''} />
                               </button>
                               
                               <div>
@@ -881,30 +904,30 @@ export default function HomeView() {
                                   {badgeText}
                                 </span>
                                 
-                                <h4 className="text-xs font-bold text-[#172033] mt-2 mb-1 leading-tight line-clamp-1">{clinic.name ?? 'Клиника'}</h4>
-                                <p className="text-[10px] text-[#64748B] line-clamp-2 mb-3">{clinic.description ?? 'Медицинское учреждение'}</p>
+                                <h4 className="text-sm font-bold text-[#172033] mt-2 mb-1 leading-tight line-clamp-1">{clinic.name ?? 'Клиника'}</h4>
+                                <p className="text-[11px] text-[#64748B] line-clamp-2 mb-3">{clinic.description ?? 'Медицинское учреждение'}</p>
                                 
                                 {/* Dynamic explanation bullet points */}
-                                <div className="flex flex-col gap-1 text-[9.5px] text-gray-500 font-medium pb-2 border-t border-[#EEF3F8] pt-2">
-                                  <div className="flex items-center gap-1">
+                                <div className="flex flex-col gap-1.5 text-[10px] text-gray-500 font-medium pb-2 border-t border-[#EEF3F8] pt-2.5">
+                                  <div className="flex items-center gap-1.5">
                                     <span className="text-emerald-500 font-bold">✓</span>
                                     <span>Принимает {currentRoute.specialist || 'специалиста'}</span>
                                   </div>
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1.5">
                                     <span className="text-emerald-500 font-bold">✓</span>
                                     <span>Рейтинг {clinic.rating?.toFixed(1) ?? '—'} ({clinic.reviewCount ?? 0} отз.)</span>
                                   </div>
                                   {clinic.lat && (
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1.5">
                                       <span className="text-emerald-500 font-bold">✓</span>
                                       <span>{getDistanceFromHub(clinic.lat, clinic.lng)} км · ≈ {Math.ceil(getDistanceFromHub(clinic.lat, clinic.lng) / 0.5)} мин</span>
                                     </div>
                                   )}
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1.5">
                                     <span className="text-emerald-500 font-bold">✓</span>
                                     <span>{clinic.workingHours}</span>
                                   </div>
-                                  <div className="flex items-center gap-1 text-blue-600">
+                                  <div className="flex items-center gap-1.5 text-blue-600">
                                     <span className="text-blue-500 font-bold">✓</span>
                                     <span>Запись онлайн</span>
                                   </div>
@@ -912,22 +935,22 @@ export default function HomeView() {
 
                                 {/* Why not this clinic toggle for alternatives (ci > 0) */}
                                 {ci > 0 && (
-                                  <div className="mt-2 pt-2 border-t border-[#EEF3F8]">
+                                  <div className="mt-2.5 pt-2.5 border-t border-[#EEF3F8]">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setWhyNotOpen(prev => ({ ...prev, [clinic.id]: !prev[clinic.id] }));
                                       }}
-                                      className="w-full flex items-center justify-between text-[10px] text-gray-500 font-bold hover:text-red-500 transition-colors"
+                                      className="w-full flex items-center justify-between text-xs text-gray-500 font-bold hover:text-red-500 transition-colors py-1"
                                     >
                                       <span>Почему не эта?</span>
                                       <span className="text-[8px]">{whyNotOpen[clinic.id] ? '▲' : '▼'}</span>
                                     </button>
                                     {whyNotOpen[clinic.id] && (
-                                      <div className="mt-1.5 p-2 rounded-lg bg-red-50 border border-red-100 flex flex-col gap-1 text-[9px] text-red-700 animate-fadeIn">
+                                      <div className="mt-2 p-2.5 rounded-xl bg-red-50 border border-red-100 flex flex-col gap-1.5 text-[10px] text-red-700 animate-fadeIn">
                                         <div className="flex items-start gap-1">
                                           <span className="font-bold shrink-0">•</span>
-                                          <span>Находится дальше от IT Hub (+{(getDistanceFromHub(clinic.lat, clinic.lng) - getDistanceFromHub(recommendedClinics[0].lat, recommendedClinics[0].lng)).toFixed(1)} км)</span>
+                                          <span>Находится дальше от Вашего местоположения (+{(getDistanceFromHub(clinic.lat, clinic.lng) - getDistanceFromHub(recommendedClinics[0].lat, recommendedClinics[0].lng)).toFixed(1)} км)</span>
                                         </div>
                                         {clinic.rating < recommendedClinics[0].rating && (
                                           <div className="flex items-start gap-1">
@@ -948,16 +971,16 @@ export default function HomeView() {
                               </div>
                               
                               {/* Google Maps route + rating */}
-                              <div className="flex items-center justify-between text-[9.5px] text-[#94A3B8] border-t border-[#F1F5F9] pt-2 mt-auto">
+                              <div className="flex items-center justify-between text-[10px] text-[#94A3B8] border-t border-[#F1F5F9] pt-2.5 mt-auto">
                                 <span className="flex items-center gap-0.5"><Star size={10} className="fill-yellow-500 text-yellow-500" /> {(clinic.rating ?? 0).toFixed(1)}</span>
                                 {clinic.lat && (
                                   <a
                                     href={buildGoogleMapsUrl(clinic.lat, clinic.lng)}
                                     target="_blank" rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-0.5 text-[#2563EB] font-semibold hover:underline"
+                                    className="flex items-center gap-1 text-[#2563EB] font-bold hover:underline py-1 px-2 bg-blue-50 rounded-lg"
                                   >
-                                    <Navigation2 size={9} /> Маршрут
+                                    <Navigation2 size={10} /> Маршрут
                                   </a>
                                 )}
                               </div>
@@ -965,16 +988,16 @@ export default function HomeView() {
                           );
                         })}
                       </div>
-                    </div>
-                  )}
 
-                  {/* Map integration */}
-                  {mapMarkers.length > 0 && (
-                    <div className="h-64 rounded-2xl overflow-hidden border border-[#DCE5EE] bg-[#EEF3F8] relative">
-                      <div className="absolute top-2.5 left-2.5 z-10 bg-white/90 backdrop-blur px-2.5 py-1.5 rounded-xl text-[10px] font-bold text-gray-700 shadow-sm flex items-center gap-1">
-                        <MapPin size={10} className="text-[#2563EB]" /> Шымкент
-                      </div>
-                      <DashboardMap center={mapCenter} markers={mapMarkers} activeMarkerId={activeClinicId} onSelectMarker={(id) => setActiveClinicId(id)} />
+                      {/* Map integration - switcher controlled */}
+                      {mapMarkers.length > 0 && (
+                        <div className={`${mobileViewTab === 'map' ? 'block' : 'hidden sm:block'} h-72 sm:h-80 rounded-3xl overflow-hidden border border-[#DCE5EE] bg-[#EEF3F8] relative mt-2 shadow-sm`}>
+                          <div className="absolute top-3 left-3 z-10 bg-white/92 backdrop-blur px-3 py-2 rounded-xl text-[10.5px] font-bold text-gray-700 shadow-sm flex items-center gap-1 border border-white/50">
+                            <MapPin size={11} className="text-[#2563EB]" /> Шымкент
+                          </div>
+                          <DashboardMap center={mapCenter} markers={mapMarkers} activeMarkerId={activeClinicId} onSelectMarker={(id) => setActiveClinicId(id)} />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1154,69 +1177,91 @@ export default function HomeView() {
           </div>
         ) : (
           /* Welcome state / Refined Hero-card Dashboard */
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 px-1 py-2">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-card rounded-3xl border border-[#DCE5EE] shadow-[0_4px_24px_-4px_rgba(23,32,51,0.06)] p-6 lg:p-8 flex flex-col gap-6"
+              className="w-full bg-transparent sm:bg-card sm:border sm:border-[#DCE5EE] sm:shadow-[0_4px_24px_-4px_rgba(23,32,51,0.06)] sm:p-6 lg:p-8 rounded-3xl flex flex-col gap-6"
             >
-              <div>
-                <h3 className="text-xl font-black text-[#172033]">Здравствуйте, {profile?.name?.split(' ')[0] ?? 'Арман'}</h3>
-                <p className="text-xs text-[#64748B] mt-1">Опишите симптомы или ситуацию.</p>
+              <div className="text-left">
+                <h3 className="text-3xl sm:text-2xl font-black text-[#172033] tracking-tight">Здравствуйте, {profile?.name?.split(' ')[0] ?? 'Арман'}</h3>
+                <p className="text-sm sm:text-xs text-[#64748B] mt-1 font-medium">Опишите ваши симптомы или медицинский вопрос.</p>
               </div>
 
-              <textarea
-                placeholder="Например: болит колено после падения, температура 37.5°C, боль длится 3 дня."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full input-field rounded-2xl px-4 py-3.5 text-sm resize-none leading-relaxed font-sans border border-[#DCE5EE] focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all bg-[#F8FAFC]"
-              />
+              <div className="relative">
+                <textarea
+                  placeholder="Например: болит колено после падения, температура 37.5°C, боль длится 3 дня..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full input-field rounded-2xl px-4 py-4 text-base resize-none leading-relaxed font-sans border-2 border-[#DCE5EE] focus:border-[#2563EB] focus:ring-4 focus:ring-blue-50 transition-all bg-white shadow-sm"
+                />
+              </div>
 
-              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-                <span className="text-[10px] text-gray-400 text-center sm:text-left">
-                  Рекомендации ИИ носят ознакомительный характер
-                </span>
+              <div className="flex flex-col gap-4">
                 <button
                   onClick={handleStartConsultation}
                   disabled={!description.trim() || loading}
-                  className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-xl text-sm sm:text-xs font-semibold shadow-lg shadow-blue-200 active:scale-[0.97] transition-all"
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-extrabold shadow-lg shadow-blue-200 active:scale-[0.97] transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  style={{ minHeight: '48px' }}
                 >
-                  Начать анализ <ArrowRight size={13} />
+                  Начать анализ <ArrowRight size={16} />
                 </button>
+                
+                <span className="text-[11px] text-[#94A3B8] text-center font-medium">
+                  Рекомендации ИИ носят исключительно ознакомительный характер
+                </span>
               </div>
 
-              {/* Horizontal Divider */}
-              <div className="h-px bg-[#EEF3F8]" />
+              {/* Template chips: ⚡ 🔍 📄 */}
+              <div className="flex flex-col gap-3 mt-2">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Примеры запросов</div>
+                <div className="flex flex-col gap-2.5">
+                  {[
+                    { label: 'Боль в колене после падения, припухлость', icon: '⚡' },
+                    { label: 'Давление повышено уже неделю, болит голова', icon: '🔍' },
+                    { label: 'Подобрать программу реабилитации после травмы', icon: '📄' },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      onClick={() => setDescription(chip.label)}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white border border-[#DCE5EE] hover:border-[#2563EB] hover:bg-blue-50/20 text-left transition-all active:scale-[0.98] min-h-[44px]"
+                    >
+                      <span className="text-lg shrink-0">{chip.icon}</span>
+                      <span className="text-sm font-semibold text-gray-700 leading-snug">{chip.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Quick Actions Buttons */}
-              <div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Быстрые действия</div>
+              <div className="flex flex-col gap-3 mt-4 pt-6 border-t border-[#EEF3F8]">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Быстрые действия</div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => router.push('/dashboard/clinics')}
-                    className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-blue-100 bg-blue-50 hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all"
+                    className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-blue-100 bg-blue-50 hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all min-h-[100px] justify-between shadow-sm active:scale-[0.97]"
                   >
-                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-[#2563EB] shrink-0">
-                      <Building2 size={15} />
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-[#2563EB] shrink-0">
+                      <Building2 size={16} />
                     </div>
                     <div>
                       <div className="text-xs font-bold text-blue-700">Подобрать клинику</div>
-                      <div className="text-[9px] text-blue-600 mt-0.5 leading-tight">Поиск и сравнение medical-центров города</div>
+                      <div className="text-[10px] text-blue-600 mt-0.5 leading-tight font-semibold">Поиск и сравнение центров</div>
                     </div>
                   </button>
 
                   <button
                     onClick={() => router.push('/dashboard/history')}
-                    className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100/50 hover:border-gray-200 text-left transition-all"
+                    className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100/50 hover:border-gray-200 text-left transition-all min-h-[100px] justify-between shadow-sm active:scale-[0.97]"
                   >
-                    <div className="w-8 h-8 rounded-xl bg-gray-500/10 flex items-center justify-center text-gray-500 shrink-0">
-                      <Clock size={15} className="text-gray-505" />
+                    <div className="w-9 h-9 rounded-xl bg-gray-500/10 flex items-center justify-center text-gray-500 shrink-0">
+                      <Clock size={16} />
                     </div>
                     <div>
                       <div className="text-xs font-bold text-gray-700">История консультаций</div>
-                      <div className="text-[9px] text-gray-400 mt-0.5 leading-tight">Ваши сохраненные маршруты и заключения</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5 leading-tight font-semibold">Ваши сохраненные маршруты</div>
                     </div>
                   </button>
                 </div>
@@ -1224,7 +1269,7 @@ export default function HomeView() {
             </motion.div>
 
             {/* Bottom update block */}
-            <div className="text-[10px] text-gray-400 text-center mt-4">
+            <div className="text-[10px] text-gray-400 text-center mt-6">
               Данные клиник обновлены: Июль 2026
             </div>
           </div>

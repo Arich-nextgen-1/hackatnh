@@ -1,35 +1,57 @@
-// Fixed departure point: Shymkent IT Hub, мкр. Север 66/2
-export const IT_HUB = { lat: 42.3417, lng: 69.5901 };
+// Fallback: Шымкент, мкр Север 66/2
+export const FALLBACK_ORIGIN = { lat: 42.3417, lng: 69.5901 };
 
 /**
- * Build a 2GIS route URL from IT Hub to a destination.
+ * Haversine distance in km between two coordinates.
  */
-export function build2GISUrl(destLat: number, destLng: number): string {
-  return `https://2gis.kz/shymkent/routeSearch/rsType/car/from/${IT_HUB.lng},${IT_HUB.lat}/to/${destLng},${destLat}`;
-}
-
-/**
- * Build a Google Maps route URL from IT Hub to a destination.
- */
-export function buildGoogleMapsUrl(destLat: number, destLng: number): string {
-  return `https://www.google.com/maps/dir/?api=1&origin=${IT_HUB.lat},${IT_HUB.lng}&destination=${destLat},${destLng}&travelmode=driving`;
-}
-
-/**
- * Haversine distance in km from IT Hub to a given coordinate.
- */
-export function getDistanceFromHub(lat: number, lng: number): number {
+export function getDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
-  const dLat = (lat - IT_HUB.lat) * (Math.PI / 180);
-  const dLng = (lng - IT_HUB.lng) * (Math.PI / 180);
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(IT_HUB.lat * (Math.PI / 180)) *
-      Math.cos(lat * (Math.PI / 180)) *
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(1));
+}
+
+/**
+ * Returns dynamic user coordinates from localStorage or fallback.
+ */
+export function getUserCoords(): { lat: number; lng: number } {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = window.localStorage.getItem('user_coords');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+          return { lat: parsed.lat, lng: parsed.lng };
+        }
+      }
+    } catch (e) {
+      console.error('[maps] Error parsing user_coords:', e);
+    }
+  }
+  return FALLBACK_ORIGIN;
+}
+
+/**
+ * Calculate distance from dynamic user origin (Hub fallback) to target.
+ */
+export function getDistanceFromHub(lat: number, lng: number): number {
+  const origin = getUserCoords();
+  return getDistance(origin.lat, origin.lng, lat, lng);
+}
+
+/**
+ * Build a Google Maps route URL from dynamic user origin to destination.
+ */
+export function buildGoogleMapsUrl(destLat: number, destLng: number): string {
+  const origin = getUserCoords();
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destLat},${destLng}&travelmode=driving`;
 }
 
 /**
@@ -67,11 +89,10 @@ export function isOpenNow(workingHours: string): boolean {
 }
 
 /**
- * Estimate travel time in minutes from IT Hub based on distance.
+ * Estimate travel time in minutes based on distance.
  */
-export function getTravelTimeFromHub(lat: number, lng: number): number {
-  const dist = getDistanceFromHub(lat, lng);
+export function getTravelTime(originLat: number, originLng: number, destLat: number, destLng: number): number {
+  const dist = getDistance(originLat, originLng, destLat, destLng);
   // Estimate ~1.8 minutes per km + 4 minutes traffic/stoplight overhead
   return Math.max(5, Math.round(dist * 1.8 + 4));
 }
-
