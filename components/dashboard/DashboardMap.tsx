@@ -27,6 +27,42 @@ declare global {
   }
 }
 
+const FALLBACK_CENTER: [number, number] = [42.3417, 69.5901];
+
+function safeCenter(center: [number, number]): [number, number] {
+  if (
+    Array.isArray(center) &&
+    center.length === 2 &&
+    Number.isFinite(center[0]) &&
+    Number.isFinite(center[1])
+  ) {
+    return center;
+  }
+  return FALLBACK_CENTER;
+}
+
+function getOriginCoords(): [number, number] {
+  if (typeof window === 'undefined') return FALLBACK_CENTER;
+  try {
+    const stored = window.localStorage.getItem('user_coords');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (
+        parsed &&
+        typeof parsed.lat === 'number' &&
+        typeof parsed.lng === 'number' &&
+        Number.isFinite(parsed.lat) &&
+        Number.isFinite(parsed.lng)
+      ) {
+        return [parsed.lat, parsed.lng];
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return FALLBACK_CENTER;
+}
+
 export default function DashboardMap({
   center,
   zoom = 12,
@@ -37,155 +73,172 @@ export default function DashboardMap({
 }: DashboardMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const markerInstancesRef = useRef<{ [id: string]: any }>({});
+  const markerLayerRef = useRef<any>(null); // LayerGroup for clinic markers
+  const routeLineRef = useRef<any>(null);   // Polyline for active route
+  const userMarkerRef = useRef<any>(null);  // User location dot
   const [loaded, setLoaded] = useState(false);
-  const [activeMarkerData, setActiveMarkerData] = useState<{ name: string; lat: number; lng: number } | null>(null);
+  const [activeMarkerData, setActiveMarkerData] = useState<{
+    name: string;
+    lat: number;
+    lng: number;
+  } | null>(null);
 
-  // Load origin from localStorage or fallback to Shymkent, мкр Север 66/2
-  const getOriginCoords = (): [number, number] => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = window.localStorage.getItem('user_coords');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
-            return [parsed.lat, parsed.lng];
-          }
-        }
-      } catch (e) {
-        console.error('[DashboardMap] Error parsing user_coords:', e);
-      }
-    }
-    return [42.3417, 69.5901];
-  };
-
-  // Load Leaflet from CDN
+  // ── 1. Load Leaflet CSS + JS from CDN once ──────────────────────
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     if (window.L) {
       setLoaded(true);
       return;
     }
 
-    // Stylesheet
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    link.id = 'leaflet-css';
-    document.head.appendChild(link);
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.id = 'leaflet-css';
+      document.head.appendChild(link);
+    }
 
-    // Script
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.id = 'leaflet-js';
-    script.async = true;
-    script.onload = () => {
-      setLoaded(true);
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      // Keep CDN script and CSS cached to avoid reloading,
-      // but clean up map instances.
-    };
+    if (!document.getElementById('leaflet-js')) {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.id = 'leaflet-js';
+      script.async = true;
+      script.onload = () => setLoaded(true);
+      document.head.appendChild(script);
+    }
   }, []);
 
-  // Initialize Map
+  // ── 2. Initialize MapContainer ONCE when Leaflet is ready ───────
   useEffect(() => {
-    if (!loaded || !mapContainerRef.current) return;
-
-    // Destroy existing map if any
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-      markerInstancesRef.current = {};
-    }
+    if (!loaded) return;
+    if (!mapContainerRef.current) return;
+    if (mapRef.current) return; // already initialized — never recreate
 
     const L = window.L;
     if (!L) return;
 
-    // Create map instance
-    const map = L.map(mapContainerRef.current).setView(center, zoom);
-    mapRef.current = map;
+    const validCenter = safeCenter(center);
 
-    // Tile layer
+    const map = L.map(mapContainerRef.current, {
+      center: validCenter,
+      zoom,
+      zoomControl: true,
+    });
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
-    // Update map size to fix grey rendering bugs
+    // LayerGroup to hold all clinic markers — easy to clear without map.remove()
+    markerLayerRef.current = L.layerGroup().addTo(map);
+
+    mapRef.current = map;
+
+    // Fix grey tile bug on first render
     setTimeout(() => {
-      if (mapRef.current) {
-        mapRef.current.invalidateSize();
-      }
-    }, 200);
+      if (mapRef.current) mapRef.current.invalidateSize();
+    }, 150);
 
     return () => {
+      // Cleanup: remove all layers before destroying map
+      if (routeLineRef.current) {
+        try { routeLineRef.current.remove(); } catch { /* ignore */ }
+        routeLineRef.current = null;
+      }
+      if (userMarkerRef.current) {
+        try { userMarkerRef.current.remove(); } catch { /* ignore */ }
+        userMarkerRef.current = null;
+      }
+      if (markerLayerRef.current) {
+        try { markerLayerRef.current.clearLayers(); } catch { /* ignore */ }
+        markerLayerRef.current = null;
+      }
       if (mapRef.current) {
-        mapRef.current.remove();
+        try { mapRef.current.remove(); } catch { /* ignore */ }
         mapRef.current = null;
-        markerInstancesRef.current = {};
       }
     };
-  }, [loaded]);
+  }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  // NOTE: intentionally omitting center/zoom from deps so the map is never recreated
 
-  // Update Markers
+  // ── 3. Add / update user location marker ───────────────────────
   useEffect(() => {
     if (!loaded || !mapRef.current) return;
-
     const L = window.L;
     if (!L) return;
 
-    // Clear old markers
-    Object.values(markerInstancesRef.current).forEach((marker: any) => {
-      marker.remove();
-    });
-    markerInstancesRef.current = {};
-
     const originCoords = getOriginCoords();
 
-    // Add user location marker
+    // Remove existing user marker
+    if (userMarkerRef.current) {
+      try { userMarkerRef.current.remove(); } catch { /* ignore */ }
+      userMarkerRef.current = null;
+    }
+
     const originIcon = L.divIcon({
       html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
-               <div style="position:absolute;top:50%;left:50%;width:24px;height:24px;border-radius:50%;background:#2563EB;opacity:0.35;animation:pulse-ring 1.4s ease-out infinite;"></div>
+               <div style="position:absolute;top:50%;left:50%;width:24px;height:24px;border-radius:50%;background:#2563EB;opacity:0.35;animation:pulse-ring 1.4s ease-out infinite;transform:translate(-50%,-50%);"></div>
                <div style="background-color:#2563EB;border-radius:50%;width:12px;height:12px;border:2.5px solid white;box-shadow:0 0 8px rgba(37,99,235,0.8);position:relative;z-index:2;"></div>
              </div>`,
       className: 'user-location-marker',
       iconSize: [24, 24],
       iconAnchor: [12, 12],
     });
-    
-    L.marker(originCoords, { icon: originIcon }).addTo(mapRef.current)
-      .bindPopup('<div style="padding:6px 10px;font-weight:bold;font-size:11px;color:#172033;text-align:center;">Мое местоположение<br/><span style="font-weight:normal;font-size:9px;color:#64748B;">мкр. Север 66/2 (ориентир)</span></div>', { closeButton: false });
 
-    // Custom Icon Definitions for Clinics/Rehabs
+    try {
+      userMarkerRef.current = L.marker(originCoords, { icon: originIcon })
+        .addTo(mapRef.current)
+        .bindPopup('<div style="padding:6px 10px;font-weight:bold;font-size:11px;color:#172033;text-align:center;">Моё местоположение</div>', { closeButton: false });
+    } catch (e) {
+      console.error('[DashboardMap] Failed to add user marker:', e);
+    }
+  }, [loaded]);
+
+  // ── 4. Sync clinic markers into LayerGroup ──────────────────────
+  useEffect(() => {
+    if (!loaded || !mapRef.current || !markerLayerRef.current) return;
+    const L = window.L;
+    if (!L) return;
+
+    // Clear previous clinic markers
+    try { markerLayerRef.current.clearLayers(); } catch { /* ignore */ }
+
+    const originCoords = getOriginCoords();
+
     const createCustomIcon = (color: string, isActive: boolean, isHovered: boolean) => {
       const isHighlighted = isActive || isHovered;
-      const shadowColor = color === '#10B981' ? 'rgba(16, 185, 129, 0.6)' : color === '#06B6D4' ? 'rgba(6, 182, 212, 0.6)' : 'rgba(37, 99, 235, 0.6)';
+      const shadowColor =
+        color === '#10B981' ? 'rgba(16, 185, 129, 0.6)'
+        : color === '#06B6D4' ? 'rgba(6, 182, 212, 0.6)'
+        : 'rgba(37, 99, 235, 0.6)';
       const pulseRing = isHighlighted
-        ? `<div style="position:absolute;top:50%;left:50%;width:28px;height:28px;border-radius:50%;background:${color};opacity:0.35;animation:pulse-ring 1.4s ease-out infinite;"></div>
-           <div style="position:absolute;top:50%;left:50%;width:28px;height:28px;border-radius:50%;background:${color};opacity:0.2;animation:pulse-ring 1.4s ease-out 0.5s infinite;"></div>`
+        ? `<div style="position:absolute;top:50%;left:50%;width:28px;height:28px;border-radius:50%;background:${color};opacity:0.35;animation:pulse-ring 1.4s ease-out infinite;transform:translate(-50%,-50%);"></div>`
         : '';
       const dotStyle = isHighlighted
-        ? `width:18px;height:18px;border:3px solid white;box-shadow:0 0 12px ${shadowColor};animation:marker-bounce 0.9s infinite ease-in-out;z-index:1000;`
+        ? `width:18px;height:18px;border:3px solid white;box-shadow:0 0 12px ${shadowColor};`
         : `width:12px;height:12px;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);`;
       return L.divIcon({
         html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
                  ${pulseRing}
                  <div style="background-color:${color};border-radius:50%;${dotStyle}position:relative;z-index:2;"></div>
                </div>`,
-        className: `custom-leaflet-marker ${isHighlighted ? 'active-marker' : ''}`,
+        className: `custom-leaflet-marker${isHighlighted ? ' active-marker' : ''}`,
         iconSize: isHighlighted ? [32, 32] : [16, 16],
         iconAnchor: isHighlighted ? [16, 16] : [8, 8],
       });
     };
 
     markers.forEach((m) => {
+      // Guard: skip markers with invalid coordinates
+      if (!Number.isFinite(m.lat) || !Number.isFinite(m.lng)) return;
+
       const isActive = m.id === activeMarkerId;
       const isHovered = m.id === hoveredMarkerId;
-      const icon = createCustomIcon(m.type === 'rehab' ? '#06B6D4' : m.type === 'private' ? '#10B981' : '#2563EB', isActive, isHovered);
-      const marker = L.marker([m.lat, m.lng], { icon }).addTo(mapRef.current);
+      const color = m.type === 'rehab' ? '#06B6D4' : m.type === 'private' ? '#10B981' : '#2563EB';
+      const icon = createCustomIcon(color, isActive, isHovered);
 
-      // Popup HTML using dynamic origin coords
       const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${m.lat},${m.lng}&travelmode=driving`;
       const popupHtml = `
         <div style="padding:12px 14px;min-width:200px;">
@@ -193,7 +246,6 @@ export default function DashboardMap({
           <p style="margin:0 0 8px;color:#64748B;font-size:11px;">${m.address}</p>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
             <span style="font-size:11px;font-weight:700;color:#f59e0b;">&#9733; ${m.rating}</span>
-            <span style="font-size:10px;color:#22c55e;font-weight:600;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:3px;vertical-align:middle;"></span>Открыто</span>
           </div>
           <a href="${googleMapsUrl}" target="_blank" rel="noreferrer"
             style="display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:6px 0;background:#2563EB;color:white;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none;">
@@ -202,78 +254,75 @@ export default function DashboardMap({
         </div>
       `;
 
-      marker.bindPopup(popupHtml, {
-        closeButton: false,
-        minWidth: 210,
-        maxWidth: 240,
-      });
-
-      marker.on('click', () => {
-        if (onSelectMarker) onSelectMarker(m.id);
-      });
-
-      markerInstancesRef.current[m.id] = marker;
+      try {
+        const marker = L.marker([m.lat, m.lng], { icon }).addTo(markerLayerRef.current);
+        marker.bindPopup(popupHtml, { closeButton: false, minWidth: 210, maxWidth: 240 });
+        marker.on('click', () => {
+          if (onSelectMarker) onSelectMarker(m.id);
+        });
+      } catch (e) {
+        console.error('[DashboardMap] Failed to add clinic marker:', e);
+      }
     });
-  }, [loaded, markers, activeMarkerId, hoveredMarkerId]);
+  }, [loaded, markers, activeMarkerId, hoveredMarkerId, onSelectMarker]);
 
-  // Center on active marker, draw route line, and fit bounds
+  // ── 5. Draw route line + center on active marker ────────────────
   useEffect(() => {
     if (!loaded || !mapRef.current) return;
     const L = window.L;
     if (!L) return;
 
-    // Clear previous route polyline if exists
-    if (mapRef.current.routeLineInstance) {
-      mapRef.current.routeLineInstance.remove();
-      mapRef.current.routeLineInstance = null;
+    // Remove old route line
+    if (routeLineRef.current) {
+      try { routeLineRef.current.remove(); } catch { /* ignore */ }
+      routeLineRef.current = null;
     }
 
-    if (activeMarkerId && markerInstancesRef.current[activeMarkerId]) {
-      const marker = markerInstancesRef.current[activeMarkerId];
-      const latLng = marker.getLatLng();
-
-      const originCoords = getOriginCoords();
-      const destCoords = [latLng.lat, latLng.lng];
-
-      // Draw dashed blue route line
-      const polyline = L.polyline([originCoords, destCoords], {
-        color: '#2563EB',
-        weight: 4.5,
-        opacity: 0.8,
-        dashArray: '8, 8',
-      }).addTo(mapRef.current);
-
-      mapRef.current.routeLineInstance = polyline;
-
-      // Fit map view to show the entire route with padding
-      const bounds = L.latLngBounds([originCoords, destCoords]);
-      mapRef.current.fitBounds(bounds, { padding: [50, 50], animate: true });
-
-      marker.openPopup();
-
-      // Store active marker data for floating button
+    if (activeMarkerId) {
+      // Find marker coordinates from markers array (not from Leaflet instances)
       const activeM = markers.find((m) => m.id === activeMarkerId);
-      if (activeM) setActiveMarkerData({ name: activeM.name, lat: activeM.lat, lng: activeM.lng });
-    } else {
-      mapRef.current.setView(center, zoom, { animate: true });
-      setActiveMarkerData(null);
-    }
-  }, [loaded, activeMarkerId, center, zoom]);
+      if (
+        activeM &&
+        Number.isFinite(activeM.lat) &&
+        Number.isFinite(activeM.lng)
+      ) {
+        const originCoords = getOriginCoords();
+        const destCoords: [number, number] = [activeM.lat, activeM.lng];
 
-  // Add click listener for popup "Подробнее" buttons
+        try {
+          routeLineRef.current = L.polyline([originCoords, destCoords], {
+            color: '#2563EB',
+            weight: 4,
+            opacity: 0.75,
+            dashArray: '8, 8',
+          }).addTo(mapRef.current);
+
+          const bounds = L.latLngBounds([originCoords, destCoords]);
+          mapRef.current.fitBounds(bounds, { padding: [50, 50], animate: true });
+        } catch (e) {
+          console.error('[DashboardMap] Failed to draw route:', e);
+        }
+
+        setActiveMarkerData({ name: activeM.name, lat: activeM.lat, lng: activeM.lng });
+        return;
+      }
+    }
+
+    // No active marker — reset view
+    try {
+      mapRef.current.setView(safeCenter(center), zoom, { animate: true });
+    } catch { /* ignore */ }
+    setActiveMarkerData(null);
+  }, [loaded, activeMarkerId, markers, center, zoom]);
+
+  // ── 6. Map detail click event listener ─────────────────────────
   useEffect(() => {
     const handleDetailClick = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const id = customEvent.detail;
-      if (onSelectMarker) {
-        onSelectMarker(id);
-      }
+      const id = (e as CustomEvent).detail;
+      if (onSelectMarker) onSelectMarker(id);
     };
-
     window.addEventListener('map-detail-click', handleDetailClick);
-    return () => {
-      window.removeEventListener('map-detail-click', handleDetailClick);
-    };
+    return () => window.removeEventListener('map-detail-click', handleDetailClick);
   }, [onSelectMarker]);
 
   const originCoords = getOriginCoords();
@@ -310,8 +359,7 @@ export default function DashboardMap({
         </div>
       )}
       <div ref={mapContainerRef} className="w-full h-full z-10" />
-      {/* Floating route button — appears when a marker is active */}
-      {activeMarkerData && (
+      {activeMarkerData && Number.isFinite(activeMarkerData.lat) && Number.isFinite(activeMarkerData.lng) && (
         <a
           href={`https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${activeMarkerData.lat},${activeMarkerData.lng}&travelmode=driving`}
           target="_blank"
