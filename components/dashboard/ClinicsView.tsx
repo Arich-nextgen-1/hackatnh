@@ -447,6 +447,7 @@ export default function ClinicsView() {
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
   const [drawerClinic, setDrawerClinic] = useState<Clinic | null>(null);
   const [hoveredClinicId, setHoveredClinicId] = useState<string | null>(null);
+  const [showMapSheet, setShowMapSheet] = useState(false);
 
   useEffect(() => {
     try {
@@ -592,8 +593,21 @@ export default function ClinicsView() {
         </div>
       </div>
 
-      {/* Right: Map */}
-      <div className="lg:flex-1 h-[350px] lg:h-full border-t lg:border-t-0 lg:border-l border-gray-200 relative bg-gray-50">
+      {/* Right: Map — desktop only inline, mobile = bottom sheet */}
+      {/* Mobile "Открыть карту" button */}
+      <div className="lg:hidden px-5 pb-4">
+        <button
+          type="button"
+          onClick={() => setShowMapSheet(true)}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white border-2 border-[#DCE5EE] text-[#2563EB] font-bold text-sm active:scale-[0.98] transition-all"
+        >
+          <MapPin size={16} />
+          Открыть карту
+        </button>
+      </div>
+
+      {/* Desktop map */}
+      <div className="hidden lg:flex lg:flex-1 h-full border-l border-gray-200 relative bg-gray-50">
         <div className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur px-3 py-1.5 rounded-xl text-xs font-medium text-gray-700 shadow-sm flex items-center gap-1.5 border border-gray-200">
           <MapPin size={11} className="text-[#2563EB]" /> Шымкент, Казахстан
         </div>
@@ -614,6 +628,46 @@ export default function ClinicsView() {
           }}
         />
       </div>
+
+      {/* Mobile map bottom sheet */}
+      {showMapSheet && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden" onClick={() => setShowMapSheet(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative z-10 bg-white rounded-t-3xl overflow-hidden"
+            style={{ height: '88vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <MapPin size={15} className="text-[#2563EB]" />
+                </div>
+                <span className="font-bold text-[#172033] text-sm">Клиники на карте</span>
+              </div>
+              <button
+                onClick={() => setShowMapSheet(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="h-full">
+              <DashboardMap
+                center={mapCenter}
+                markers={mapMarkers}
+                activeMarkerId={activeClinicId}
+                hoveredMarkerId={hoveredClinicId}
+                onSelectMarker={(id) => {
+                  setActiveClinicId(id);
+                  const found = enriched.find((c) => c.id === id);
+                  if (found) { setDrawerClinic(found); setShowMapSheet(false); }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Drawer */}
       <AnimatePresence>
