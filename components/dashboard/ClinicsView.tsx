@@ -46,6 +46,14 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
   const loadInfo = clinic.load ? getLoadInfo(clinic.load) : null;
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -66,24 +74,41 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
     });
   };
 
+  const mobileVariants = {
+    initial: { y: '100%', opacity: 1 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: '100%', opacity: 1 },
+  };
+  const desktopVariants = {
+    initial: { x: '100%', opacity: 1 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '100%', opacity: 1 },
+  };
+  const variants = isMobile ? mobileVariants : desktopVariants;
+  const mobileClass = 'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-[28px] bg-white shadow-2xl flex flex-col overflow-hidden';
+  const desktopClass = 'relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col';
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-        <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-          className="relative ml-auto w-full max-w-md bg-white h-full shadow-2xl flex flex-col p-6 gap-5">
-          <div className="flex justify-between items-center">
+        <motion.div
+          {...variants}
+          transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+          className={isMobile ? mobileClass : desktopClass}
+        >
+          {isMobile && <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-gray-200" /></div>}
+          <div className="flex justify-between items-center p-6">
             <div className="h-4 w-24 bg-gray-100 rounded-full animate-pulse" />
             <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
           </div>
-          <div className="h-8 w-3/4 bg-gray-100 rounded-xl animate-pulse" />
-          <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
-          <div className="h-48 w-full bg-gray-100 rounded-2xl animate-pulse" />
-          <div className="flex flex-col gap-3 mt-2">
+          <div className="px-6 flex flex-col gap-3">
+            <div className="h-8 w-3/4 bg-gray-100 rounded-xl animate-pulse" />
+            <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
+            <div className="h-48 w-full bg-gray-100 rounded-2xl animate-pulse" />
             {[1,2,3,4].map(i => <div key={i} className="h-11 bg-gray-100 rounded-xl animate-pulse" />)}
           </div>
-          <div className="mt-auto h-12 bg-gray-100 rounded-2xl animate-pulse" />
         </motion.div>
       </div>
     );
@@ -97,12 +122,21 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
         onClick={onClose}
       />
       <motion.div
-        initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+        initial={variants.initial}
+        animate={variants.animate}
+        exit={variants.exit}
         transition={{ type: 'spring', stiffness: 340, damping: 36 }}
-        className="relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col"
+        className={isMobile ? mobileClass : desktopClass}
       >
+        {/* Mobile drag handle */}
+        {isMobile && (
+          <div className="flex justify-center pt-3 pb-1 shrink-0">
+            <div className="w-10 h-1 rounded-full bg-gray-300" />
+          </div>
+        )}
+
         {/* Header */}
-        <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-gray-100">
+        <div className="flex-shrink-0 px-5 pt-4 pb-4 border-b border-gray-100">
           <div className="flex items-start justify-between gap-3 mb-3">
             <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
               clinic.type === 'private'
@@ -120,7 +154,7 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <StarRating rating={clinic.rating} />
             <span className="text-sm text-gray-400">({clinic.reviewCount || 0} отзывов)</span>
-            <span className={`flex items-center gap-1.5 text-sm font-semibold ${clinic.open ? 'text-red-500' : 'text-red-500'}`}>
+            <span className={`flex items-center gap-1.5 text-sm font-semibold ${clinic.open ? 'text-green-600' : 'text-red-500'}`}>
               <span className={`w-2 h-2 rounded-full ${clinic.open ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
               {clinic.open ? 'Открыто' : 'Закрыто'}
             </span>
@@ -148,7 +182,7 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           </div>
         )}
 
-        {/* Body */}
+        {/* Body — scrollable */}
         <div className="flex-1 flex flex-col px-5 py-4 gap-5 overflow-y-auto">
 
           {/* Contact info rows */}
@@ -272,19 +306,20 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           )}
         </div>
 
-        {/* Bottom Action Buttons */}
-        <div className="flex-shrink-0 px-5 pb-6 pt-4 border-t border-gray-100 flex flex-col gap-2.5">
+        {/* Bottom Action Buttons — fixed, with safe-area inset */}
+        <div className="flex-shrink-0 px-5 pt-4 border-t border-gray-100 flex flex-col gap-2.5"
+          style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
           <a
             href={googleMapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200"
+            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200 active:scale-[0.97]"
           >
             <Navigation2 size={16} /> Открыть в Google Maps
           </a>
           <a
             href={`tel:${clinic.phone}`}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
           >
             <Phone size={15} className="text-blue-600" /> Позвонить по номеру
           </a>
@@ -388,7 +423,7 @@ function ClinicCard({
         {/* Open button */}
         <button
           onClick={onOpen}
-          className="mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-[#2563EB] bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-all"
+          className="mt-1 w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-bold text-[#2563EB] bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-all active:scale-[0.97]"
         >
           Подробнее <ChevronRight size={12} />
         </button>
@@ -552,7 +587,7 @@ export default function ClinicsView() {
       </div>
 
       {/* Right: Map */}
-      <div className="lg:flex-1 h-80 lg:h-full border-t lg:border-t-0 lg:border-l border-gray-200 relative bg-gray-50">
+      <div className="lg:flex-1 h-[350px] lg:h-full border-t lg:border-t-0 lg:border-l border-gray-200 relative bg-gray-50">
         <div className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur px-3 py-1.5 rounded-xl text-xs font-medium text-gray-700 shadow-sm flex items-center gap-1.5 border border-gray-200">
           <MapPin size={11} className="text-[#2563EB]" /> Шымкент, Казахстан
         </div>

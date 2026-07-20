@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
 import Sidebar from '@/components/dashboard/Sidebar';
 import TopBar from '@/components/dashboard/TopBar';
+import BottomNavigation from '@/components/dashboard/BottomNavigation';
 
 export default function DashboardLayout({
   children,
@@ -52,11 +53,11 @@ export default function DashboardLayout({
       </AnimatePresence>
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <TopBar onMenuToggle={() => setSidebarOpen((v) => !v)} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-[calc(60px+env(safe-area-inset-bottom))] lg:pb-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
@@ -71,6 +72,10 @@ export default function DashboardLayout({
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Bottom Navigation for mobile */}
+      <BottomNavigation />
     </div>
   );
 }
+

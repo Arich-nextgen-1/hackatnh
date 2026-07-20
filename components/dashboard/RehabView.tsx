@@ -55,6 +55,14 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
   const programs = center.programs ?? center.services ?? [];
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -75,24 +83,41 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
     });
   };
 
+  const mobileVariants = {
+    initial: { y: '100%', opacity: 1 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: '100%', opacity: 1 },
+  };
+  const desktopVariants = {
+    initial: { x: '100%', opacity: 1 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '100%', opacity: 1 },
+  };
+  const variants = isMobile ? mobileVariants : desktopVariants;
+  const mobileClass = 'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-[28px] bg-white shadow-2xl flex flex-col overflow-hidden';
+  const desktopClass = 'relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col';
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-        <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-          className="relative ml-auto w-full max-w-md bg-white h-full shadow-2xl flex flex-col p-6 gap-5">
-          <div className="flex justify-between items-center">
+        <motion.div
+          {...variants}
+          transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+          className={isMobile ? mobileClass : desktopClass}
+        >
+          {isMobile && <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-gray-200" /></div>}
+          <div className="flex justify-between items-center p-6">
             <div className="h-4 w-24 bg-gray-100 rounded-full animate-pulse" />
             <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
           </div>
-          <div className="h-8 w-3/4 bg-gray-100 rounded-xl animate-pulse" />
-          <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
-          <div className="h-48 w-full bg-gray-100 rounded-2xl animate-pulse" />
-          <div className="flex flex-col gap-3 mt-2">
+          <div className="px-6 flex flex-col gap-3">
+            <div className="h-8 w-3/4 bg-gray-100 rounded-xl animate-pulse" />
+            <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
+            <div className="h-48 w-full bg-gray-100 rounded-2xl animate-pulse" />
             {[1,2,3,4].map(i => <div key={i} className="h-11 bg-gray-100 rounded-xl animate-pulse" />)}
           </div>
-          <div className="mt-auto h-12 bg-gray-100 rounded-2xl animate-pulse" />
         </motion.div>
       </div>
     );
@@ -106,10 +131,18 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
         onClick={onClose}
       />
       <motion.div
-        initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+        initial={variants.initial}
+        animate={variants.animate}
+        exit={variants.exit}
         transition={{ type: 'spring', stiffness: 340, damping: 36 }}
-        className="relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col"
+        className={isMobile ? mobileClass : desktopClass}
       >
+        {/* Mobile drag handle */}
+        {isMobile && (
+          <div className="flex justify-center pt-3 pb-1 shrink-0">
+            <div className="w-10 h-1 rounded-full bg-gray-300" />
+          </div>
+        )}
         {/* Header */}
         <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-gray-100">
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -237,19 +270,20 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
           )}
         </div>
 
-        {/* Bottom Action Buttons */}
-        <div className="flex-shrink-0 px-5 pb-6 pt-4 border-t border-gray-100 flex flex-col gap-2.5">
+        {/* Bottom Action Buttons — with safe-area inset */}
+        <div className="flex-shrink-0 px-5 pt-4 border-t border-gray-100 flex flex-col gap-2.5"
+          style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
           <a
             href={googleMapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200"
+            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200 active:scale-[0.97]"
           >
             <Navigation2 size={16} /> Открыть в Google Maps
           </a>
           <a
             href={`tel:${center.phone}`}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
           >
             <Phone size={15} className="text-cyan-600" /> Позвонить по номеру
           </a>
@@ -347,7 +381,7 @@ function RehabCard({
         {/* Open button */}
         <button
           onClick={onOpen}
-          className="mt-1 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-cyan-600 bg-cyan-50 hover:bg-cyan-100 border border-cyan-100 transition-all"
+          className="mt-1 w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-bold text-cyan-600 bg-cyan-50 hover:bg-cyan-100 border border-cyan-100 transition-all active:scale-[0.97]"
         >
           Подробнее <ChevronRight size={12} />
         </button>

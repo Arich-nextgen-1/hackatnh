@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark, Phone, Navigation2, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
@@ -77,6 +77,8 @@ function cleanUndefined(text: any): string {
 export default function HomeView() {
   const { profile } = useProfile();
   const router = useRouter();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<GrokMessage[]>([]);
@@ -91,6 +93,11 @@ export default function HomeView() {
   const [thinkStep, setThinkStep] = useState(0);
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
   const [whyNotOpen, setWhyNotOpen] = useState<Record<string, boolean>>({});
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, loading]);
+
   // Step-by-step AI Think Process interval — 6 steps
   useEffect(() => {
     let interval: any;
@@ -491,24 +498,30 @@ export default function HomeView() {
                 </span>
               </motion.div>
             )}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {chatHistory.map((msg, index) => {
                 const isLastMessage = index === chatHistory.length - 1;
-                // Debug: log what's being rendered
-                console.log(`[Render msg ${index}] role=${msg.role} content type=${typeof msg.content} content(50)=${String(msg.content ?? '').substring(0, 50)}`);
                 const safeContent = cleanUndefined(msg.content);
                 return (
-                  <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className={`flex items-end gap-2 ${
+                      msg.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
                     {msg.role === 'assistant' && (
-                      <div className="w-8 h-8 rounded-lg bg-[#EEF3F8] border border-[#DCE5EE] flex items-center justify-center shrink-0 mt-0.5">
-                        <Sparkles size={14} className="text-[#2563EB]" />
+                      <div className="hidden sm:flex w-7 h-7 rounded-full bg-[#E0EEFF] items-center justify-center shrink-0 mb-1">
+                        <Sparkles size={12} className="text-[#2563EB]" />
                       </div>
                     )}
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-[0_1px_3px_0_rgb(0,0,0,0.06)] border ${
+                      className={`max-w-[80%] px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
                         msg.role === 'user'
-                          ? 'bg-[#2563EB] text-white border-transparent'
-                          : 'bg-card text-[#172033] border-[#DCE5EE]'
+                          ? 'bg-[#2563EB] text-white rounded-[20px] rounded-br-[4px]'
+                          : 'bg-white text-[#172033] border border-[#DCE5EE] rounded-[20px] rounded-bl-[4px]'
                       }`}
                     >
                       {msg.role === 'assistant' ? (
@@ -517,22 +530,22 @@ export default function HomeView() {
                           {isLastMessage && !loading ? (
                             <TypewriterText text={safeContent} />
                           ) : (
-                            <p className="text-sm leading-relaxed whitespace-pre-line">{safeContent}</p>
+                            <p className="whitespace-pre-line">{safeContent}</p>
                           )}
-                          <p className="text-[10px] text-red-500/80 font-medium mt-2 pt-2 border-t border-[#EEF3F8] leading-relaxed">
+                          <p className="text-[10px] text-red-500/70 font-medium mt-2 pt-2 border-t border-[#EEF3F8] leading-relaxed">
                             AI не заменяет врача и не ставит диагноз. Рекомендации носят исключительно информационный характер.
                           </p>
                         </>
                       ) : (
-                        <p className="text-sm leading-relaxed whitespace-pre-line">{safeContent}</p>
+                        <p className="whitespace-pre-line">{safeContent}</p>
                       )}
                     </div>
                     {msg.role === 'user' && (
-                      <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+                      <div className="hidden sm:flex w-7 h-7 rounded-full gradient-primary items-center justify-center text-white text-xs font-bold shrink-0 mb-1">
                         {profile?.name?.charAt(0).toUpperCase() ?? 'П'}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 );
               })}
 
@@ -599,6 +612,8 @@ export default function HomeView() {
                   </div>
                 </div>
               )}
+              {/* Scroll anchor */}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Structured Routing Result Block (Паспорт маршрута пациента) */}
@@ -1159,14 +1174,14 @@ export default function HomeView() {
                 className="w-full input-field rounded-2xl px-4 py-3.5 text-sm resize-none leading-relaxed font-sans border border-[#DCE5EE] focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all bg-[#F8FAFC]"
               />
 
-              <div className="flex justify-between items-center flex-wrap gap-2">
-                <span className="text-[10px] text-gray-400">
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                <span className="text-[10px] text-gray-400 text-center sm:text-left">
                   Рекомендации ИИ носят ознакомительный характер
                 </span>
                 <button
                   onClick={handleStartConsultation}
                   disabled={!description.trim() || loading}
-                  className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-blue-200"
+                  className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-xl text-sm sm:text-xs font-semibold shadow-lg shadow-blue-200 active:scale-[0.97] transition-all"
                 >
                   Начать анализ <ArrowRight size={13} />
                 </button>
@@ -1178,7 +1193,7 @@ export default function HomeView() {
               {/* Quick Actions Buttons */}
               <div>
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Быстрые действия</div>
-                <div className="grid sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => router.push('/dashboard/clinics')}
                     className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-blue-100 bg-blue-50 hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all"

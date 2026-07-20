@@ -181,4 +181,24 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* ── Mobile Touch UX ───────────────────────── */
+  /* Remove iOS tap highlight */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure all interactive elements meet 44×44px minimum touch target */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Exception: inline badge-like spans shouldn't grow */
+  button.badge-primary,
+  button.badge-accent,
+  button.badge-success {
+    min-height: unset;
+    min-width: unset;
+  }
 }

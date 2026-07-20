@@ -39,6 +39,7 @@ export default function DashboardMap({
   const mapRef = useRef<any>(null);
   const markerInstancesRef = useRef<{ [id: string]: any }>({});
   const [loaded, setLoaded] = useState(false);
+  const [activeMarkerData, setActiveMarkerData] = useState<{ name: string; lat: number; lng: number } | null>(null);
 
   // Load Leaflet from CDN
   useEffect(() => {
@@ -216,8 +217,13 @@ export default function DashboardMap({
       mapRef.current.fitBounds(bounds, { padding: [50, 50], animate: true });
 
       marker.openPopup();
+
+      // Store active marker data for floating button
+      const activeM = markers.find((m) => m.id === activeMarkerId);
+      if (activeM) setActiveMarkerData({ name: activeM.name, lat: activeM.lat, lng: activeM.lng });
     } else {
       mapRef.current.setView(center, zoom, { animate: true });
+      setActiveMarkerData(null);
     }
   }, [loaded, activeMarkerId, center, zoom]);
 
@@ -238,7 +244,7 @@ export default function DashboardMap({
   }, [onSelectMarker]);
 
   return (
-    <div className="w-full h-full relative" style={{ minHeight: '200px' }}>
+    <div className="w-full h-full relative" style={{ minHeight: '300px' }}>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes marker-bounce {
           0%, 100% { transform: translateY(0) scale(1); }
@@ -269,6 +275,18 @@ export default function DashboardMap({
         </div>
       )}
       <div ref={mapContainerRef} className="w-full h-full z-10" />
+      {/* Floating route button — appears when a marker is active */}
+      {activeMarkerData && (
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&origin=42.3417,69.5901&destination=${activeMarkerData.lat},${activeMarkerData.lng}&travelmode=driving`}
+          target="_blank"
+          rel="noreferrer"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2563EB] text-white text-xs font-bold shadow-xl shadow-blue-300/50 hover:bg-[#1D4ED8] transition-all active:scale-[0.97] whitespace-nowrap"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Маршрут: {activeMarkerData.name.length > 22 ? activeMarkerData.name.substring(0, 22) + '...' : activeMarkerData.name}
+        </a>
+      )}
     </div>
   );
 }
