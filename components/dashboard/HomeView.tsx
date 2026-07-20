@@ -94,6 +94,7 @@ export default function HomeView() {
   const [activeClinicId, setActiveClinicId] = useState<string | null>(null);
   const [whyNotOpen, setWhyNotOpen] = useState<Record<string, boolean>>({});
   const [mobileViewTab, setMobileViewTab] = useState<'list' | 'map'>('list');
+  const [showMapSheet, setShowMapSheet] = useState(false);
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -751,25 +752,7 @@ export default function HomeView() {
                       </div>
                     </div>
 
-                    {/* Why this specialist checklist */}
-                    <div className="bg-[#F0FDF4] rounded-2xl p-4 border border-[#DCFCE7] flex flex-col gap-2">
-                      <div className="text-[9px] text-green-700 font-bold uppercase tracking-wider">
-                        Почему {currentRoute.specialist || 'этот специалист'}?
-                      </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                        {(currentRoute.specialist_reasons ?? [
-                          'соответствие основным симптомам',
-                          'локализация и характер боли',
-                          'длительность проявления симптомов',
-                          'профиль риска по возрасту'
-                        ]).map((item: string, idx: number) => (
-                          <div key={idx} className="flex items-center gap-1.5 text-xs text-green-800">
-                            <span className="text-green-600 font-bold">✓</span>
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+
 
                     {/* Next step */}
                     <div className="flex items-center justify-between border-t border-dashed border-[#DCE5EE] pt-3">
@@ -783,97 +766,18 @@ export default function HomeView() {
                     </div>
                   </div>
 
-                  {/* Explainable AI Confidence Block */}
-                  <div className="bg-[#F0FDFA] border border-[#CCFBF1] rounded-3xl p-5 flex flex-col gap-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-teal-100 flex items-center justify-center">
-                          <Shield size={15} className="text-teal-600" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-teal-900 leading-tight">Почему выбран этот специалист?</h4>
-                          <span className="text-[10px] text-teal-600 font-semibold">Анализ по параметрам профиля</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xl font-black text-teal-950">{(currentRoute.confidence_score ?? 92)}%</span>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-teal-100 pt-3">
-                      {[
-                        'возрасте',
-                        'симптомах',
-                        'длительности',
-                        'хронических заболеваниях',
-                        'базе клиник',
-                        'клинических рекомендациях'
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs text-teal-800">
-                          <span className="text-teal-600 font-bold">✓</span>
-                          <span>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Exclusions Block (Что исключено) */}
-                  {currentRoute.excluded_specialists && currentRoute.excluded_specialists.length > 0 && (
-                    <div className="bg-[#FAF9F6] border border-orange-100 rounded-3xl p-5 flex flex-col gap-3">
-                      <div>
-                        <h4 className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                          <span className="text-orange-500 font-bold text-sm">✕</span> Что исключено (Почему маршрут не сюда)
-                        </h4>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Отделения и специалисты, контакт с которыми признан нецелесообразным</p>
-                      </div>
-                      <div className="grid sm:grid-cols-2 gap-3">
-                        {currentRoute.excluded_specialists.map((ex: any, ei: number) => (
-                          <div key={ei} className="bg-white border border-gray-100 p-3 rounded-2xl flex items-start gap-2 shadow-sm">
-                            <div className="w-5 h-5 rounded bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">✕</div>
-                            <div>
-                              <div className="text-xs font-bold text-gray-700 leading-tight">{ex.specialist}</div>
-                              <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{ex.reason}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Recommended Clinics with Categorized Badges & Mobile View Switcher */}
+                  {/* Recommended Clinics with Categorized Badges */}
                   {recommendedClinics.length > 0 && (
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#EEF3F8] pb-3">
-                        <div className="flex items-center justify-between w-full sm:w-auto">
-                          <h4 className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Сравнительный анализ клиник</h4>
-                          
-                          {/* Segmented Control Switcher for Mobile */}
-                          <div className="flex sm:hidden bg-gray-100 p-0.5 rounded-xl border border-gray-200">
-                            <button
-                              type="button"
-                              onClick={() => setMobileViewTab('list')}
-                              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
-                                mobileViewTab === 'list' ? 'bg-white text-[#2563EB] shadow-sm' : 'text-gray-500'
-                              }`}
-                            >
-                              Список
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setMobileViewTab('map')}
-                              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
-                                mobileViewTab === 'map' ? 'bg-white text-[#2563EB] shadow-sm' : 'text-gray-500'
-                              }`}
-                            >
-                              Карта
-                            </button>
-                          </div>
-                        </div>
+                        <h4 className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Сравнительный анализ клиник</h4>
                         <span className="hidden sm:inline text-[9.5px] font-semibold text-[#2563EB]">Кликните на карточку, чтобы подсветить на карте</span>
                       </div>
 
                       {/* Clinics List Grid */}
-                      <div className={`${mobileViewTab === 'list' ? 'grid' : 'hidden sm:grid'} grid-cols-1 sm:grid-cols-3 gap-4`}>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {recommendedClinics.map((clinic: any, ci: number) => {
                           const badgeText = ci === 0 ? 'Лучший вариант' : ci === 1 ? 'Альтернатива' : 'Ближайшая';
                           const badgeClass = ci === 0 
@@ -989,14 +893,57 @@ export default function HomeView() {
                         })}
                       </div>
 
-                      {/* Map integration - switcher controlled */}
+                      {/* Map: button on mobile, always visible on desktop */}
                       {mapMarkers.length > 0 && (
-                        <div className={`${mobileViewTab === 'map' ? 'block' : 'hidden sm:block'} h-72 sm:h-80 rounded-3xl overflow-hidden border border-[#DCE5EE] bg-[#EEF3F8] relative mt-2 shadow-sm`}>
-                          <div className="absolute top-3 left-3 z-10 bg-white/92 backdrop-blur px-3 py-2 rounded-xl text-[10.5px] font-bold text-gray-700 shadow-sm flex items-center gap-1 border border-white/50">
-                            <MapPin size={11} className="text-[#2563EB]" /> Шымкент
+                        <>
+                          {/* Desktop map — always shown */}
+                          <div className="hidden sm:block h-80 rounded-3xl overflow-hidden border border-[#DCE5EE] bg-[#EEF3F8] relative mt-2 shadow-sm">
+                            <div className="absolute top-3 left-3 z-10 bg-white/92 backdrop-blur px-3 py-2 rounded-xl text-[10.5px] font-bold text-gray-700 shadow-sm flex items-center gap-1 border border-white/50">
+                              <MapPin size={11} className="text-[#2563EB]" /> Шымкент
+                            </div>
+                            <DashboardMap center={mapCenter} markers={mapMarkers} activeMarkerId={activeClinicId} onSelectMarker={(id) => setActiveClinicId(id)} />
                           </div>
-                          <DashboardMap center={mapCenter} markers={mapMarkers} activeMarkerId={activeClinicId} onSelectMarker={(id) => setActiveClinicId(id)} />
-                        </div>
+
+                          {/* Mobile: show map button */}
+                          <button
+                            type="button"
+                            onClick={() => setShowMapSheet(true)}
+                            className="sm:hidden flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-white border-2 border-[#DCE5EE] text-[#2563EB] font-bold text-sm mt-2 active:scale-[0.98] transition-all"
+                          >
+                            <MapPin size={16} />
+                            Показать карту
+                          </button>
+
+                          {/* Mobile map bottom sheet */}
+                          {showMapSheet && (
+                            <div className="fixed inset-0 z-50 flex flex-col justify-end sm:hidden" onClick={() => setShowMapSheet(false)}>
+                              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                              <div
+                                className="relative z-10 bg-white rounded-t-3xl overflow-hidden"
+                                style={{ height: '88vh' }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                                      <MapPin size={15} className="text-[#2563EB]" />
+                                    </div>
+                                    <span className="font-bold text-[#172033] text-sm">Клиники на карте</span>
+                                  </div>
+                                  <button
+                                    onClick={() => setShowMapSheet(false)}
+                                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-lg"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                <div className="h-full">
+                                  <DashboardMap center={mapCenter} markers={mapMarkers} activeMarkerId={activeClinicId} onSelectMarker={(id) => { setActiveClinicId(id); setShowMapSheet(false); }} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
@@ -1214,26 +1161,7 @@ export default function HomeView() {
                 </span>
               </div>
 
-              {/* Template chips: ⚡ 🔍 📄 */}
-              <div className="flex flex-col gap-3 mt-2">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Примеры запросов</div>
-                <div className="flex flex-col gap-2.5">
-                  {[
-                    { label: 'Боль в колене после падения, припухлость', icon: '⚡' },
-                    { label: 'Давление повышено уже неделю, болит голова', icon: '🔍' },
-                    { label: 'Подобрать программу реабилитации после травмы', icon: '📄' },
-                  ].map((chip) => (
-                    <button
-                      key={chip.label}
-                      onClick={() => setDescription(chip.label)}
-                      className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white border border-[#DCE5EE] hover:border-[#2563EB] hover:bg-blue-50/20 text-left transition-all active:scale-[0.98] min-h-[44px]"
-                    >
-                      <span className="text-lg shrink-0">{chip.icon}</span>
-                      <span className="text-sm font-semibold text-gray-700 leading-snug">{chip.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               {/* Quick Actions Buttons */}
               <div className="flex flex-col gap-3 mt-4 pt-6 border-t border-[#EEF3F8]">

@@ -44,16 +44,23 @@ function StarRating({ rating }: { rating: number }) {
 function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void }) {
   const googleMapsUrl = buildGoogleMapsUrl(clinic.lat, clinic.lng);
   const loadInfo = clinic.load ? getLoadInfo(clinic.load) : null;
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
+    setMounted(true);
     const check = () => setIsMobile(window.innerWidth < 1024);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  const mobileClass = 'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] w-full max-w-full rounded-t-[28px] bg-white shadow-2xl flex flex-col overflow-hidden';
+  const desktopClass = 'relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col';
+
+  if (!mounted) return null;
 
   useEffect(() => {
     setLoading(true);
@@ -85,8 +92,7 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
     exit: { x: '100%', opacity: 1 },
   };
   const variants = isMobile ? mobileVariants : desktopVariants;
-  const mobileClass = 'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-[28px] bg-white shadow-2xl flex flex-col overflow-hidden';
-  const desktopClass = 'relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col';
+
 
   if (loading) {
     return (

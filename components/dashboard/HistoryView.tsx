@@ -59,10 +59,9 @@ function formatDate(raw: string) {
     }
   }
 
-  // Still invalid — return raw string or default
+  // Still invalid — return 'Недавно' per instructions
   if (isNaN(d.getTime())) {
-    if (raw.toLowerCase().includes('invalid')) return '—';
-    return raw;
+    return 'Недавно';
   }
 
   // Relative labels

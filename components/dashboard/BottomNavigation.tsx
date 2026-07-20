@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageSquare, Building2, History, User } from 'lucide-react';
+import { Home, Building2, History, User, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const navItems = [
   { href: '/dashboard', label: 'Главная', icon: Home },
-  { href: '/dashboard/consultation', label: 'Чат', icon: MessageSquare },
   { href: '/dashboard/clinics', label: 'Клиники', icon: Building2 },
+  { href: '/dashboard/rehabilitation', label: 'Реабил.', icon: Activity },
   { href: '/dashboard/history', label: 'История', icon: History },
   { href: '/dashboard/profile', label: 'Профиль', icon: User },
 ];

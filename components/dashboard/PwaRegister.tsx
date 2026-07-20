@@ -49,7 +49,34 @@ export default function PwaRegister() {
       window.dispatchEvent(new Event('user_coords_updated'));
     }
 
-    if (!('serviceWorker' in navigator)) return;
+    // PWA Install Prompt Listener
+    const handleInstallPrompt = (e: any) => {
+      e.preventDefault();
+      (window as any).deferredPrompt = e;
+      window.dispatchEvent(new Event('pwa_install_prompt_available'));
+      console.log('[PWA] beforeinstallprompt event captured and stashed');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      (window as any).isPwaInstalled = true;
+    }
+
+    const handleAppInstalled = () => {
+      (window as any).isPwaInstalled = true;
+      (window as any).deferredPrompt = null;
+      window.dispatchEvent(new Event('pwa_install_status_changed'));
+      console.log('[PWA] App installed successfully');
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    if (!('serviceWorker' in navigator)) {
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      return;
+    }
 
     // Register immediately — don't wait for 'load' event (Next.js already handles load)
     navigator.serviceWorker
@@ -83,6 +110,11 @@ export default function PwaRegister() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       console.log('[PWA] New SW controller — reloading');
     });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   return null;
