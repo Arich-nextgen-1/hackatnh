@@ -53,22 +53,7 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
   const googleMapsUrl = buildGoogleMapsUrl(center.lat, center.lng);
   const loadInfo = center.load ? getLoadInfo(center.load) : null;
   const programs = center.programs ?? center.services ?? [];
-  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => setLoading(false), 380);
-    return () => clearTimeout(t);
-  }, [center.id]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -83,68 +68,32 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
     });
   };
 
-  const mobileVariants = {
-    initial: { y: '100%', opacity: 1 },
-    animate: { y: 0, opacity: 1 },
-    exit: { y: '100%', opacity: 1 },
-  };
-  const desktopVariants = {
-    initial: { x: '100%', opacity: 1 },
-    animate: { x: 0, opacity: 1 },
-    exit: { x: '100%', opacity: 1 },
-  };
-  const variants = isMobile ? mobileVariants : desktopVariants;
-  const mobileClass = 'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-[28px] bg-white shadow-2xl flex flex-col overflow-hidden';
-  const desktopClass = 'relative ml-auto w-full max-w-md bg-white h-full overflow-y-auto shadow-2xl flex flex-col';
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-50 flex">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-        <motion.div
-          {...variants}
-          transition={{ type: 'spring', stiffness: 340, damping: 36 }}
-          className={isMobile ? mobileClass : desktopClass}
-        >
-          {isMobile && <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-gray-200" /></div>}
-          <div className="flex justify-between items-center p-6">
-            <div className="h-4 w-24 bg-gray-100 rounded-full animate-pulse" />
-            <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
-          </div>
-          <div className="px-6 flex flex-col gap-3">
-            <div className="h-8 w-3/4 bg-gray-100 rounded-xl animate-pulse" />
-            <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
-            <div className="h-48 w-full bg-gray-100 rounded-2xl animate-pulse" />
-            {[1,2,3,4].map(i => <div key={i} className="h-11 bg-gray-100 rounded-xl animate-pulse" />)}
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end lg:flex-row lg:justify-end lg:items-stretch">
+      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
+
+      {/* Panel: bottom sheet on mobile, right side panel on desktop */}
       <motion.div
-        initial={variants.initial}
-        animate={variants.animate}
-        exit={variants.exit}
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 340, damping: 36 }}
-        className={isMobile ? mobileClass : desktopClass}
+        className="relative z-10 bg-white w-full max-h-[90vh] rounded-t-[28px] flex flex-col overflow-hidden
+                   lg:translate-y-0 lg:rounded-none lg:rounded-l-3xl lg:max-h-full lg:h-full lg:w-[420px] lg:max-w-[420px]"
+        style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         {/* Mobile drag handle */}
-        {isMobile && (
-          <div className="flex justify-center pt-3 pb-1 shrink-0">
-            <div className="w-10 h-1 rounded-full bg-gray-300" />
-          </div>
-        )}
+        <div className="flex justify-center pt-3 pb-1 shrink-0 lg:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+
         {/* Header */}
-        <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-gray-100">
+        <div className="flex-shrink-0 px-5 pt-4 pb-4 border-b border-gray-100">
           <div className="flex items-start justify-between gap-3 mb-3">
             <span className="text-[11px] font-bold px-3 py-1 rounded-full border bg-cyan-50 text-cyan-700 border-cyan-100">
               Реабилитационный центр
@@ -154,17 +103,17 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
               <X size={15} />
             </button>
           </div>
-          <h2 className="text-2xl font-black text-gray-900 leading-tight">{center.name || 'Центр реабилитации'}</h2>
+          <h2 className="text-xl font-black text-gray-900 leading-tight">{center.name || 'Центр реабилитации'}</h2>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <StarRating rating={center.rating} />
-            <span className="text-sm text-gray-400">({center.reviewCount || 0} отзывов)</span>
-            <span className={`flex items-center gap-1.5 text-sm font-semibold ${center.open ? 'text-green-600' : 'text-red-500'}`}>
-              <span className={`w-2 h-2 rounded-full ${center.open ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-xs text-gray-400">({center.reviewCount || 0} отзывов)</span>
+            <span className={`flex items-center gap-1.5 text-xs font-semibold ${center.open ? 'text-green-600' : 'text-red-500'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${center.open ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
               {center.open ? 'Открыто' : 'Закрыто'}
             </span>
             {center.distance != null && (
-              <span className="flex items-center gap-1 text-sm text-gray-500">
-                <MapPin size={12} className="text-gray-400" />
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <MapPin size={11} className="text-gray-400" />
                 {center.distance} км
               </span>
             )}
@@ -173,7 +122,7 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
 
         {/* Load indicator */}
         {loadInfo && (
-          <div className={`mx-5 mt-4 flex items-center gap-3 px-4 py-3 rounded-xl border ${loadInfo.bg} ${loadInfo.border}`}>
+          <div className={`mx-5 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl border ${loadInfo.bg} ${loadInfo.border}`}>
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: loadInfo.dot }} />
             <div>
               <div className={`text-sm font-bold ${loadInfo.text}`}>{loadInfo.label}</div>
@@ -187,44 +136,44 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
         )}
 
         {/* Body */}
-        <div className="flex-1 flex flex-col px-5 py-4 gap-5 overflow-y-auto">
+        <div className="flex-1 flex flex-col px-5 py-4 gap-4 overflow-y-auto">
 
           {/* Contact info rows */}
           <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
               <div className="flex items-center gap-3">
-                <MapPin size={16} className="text-cyan-600 shrink-0" />
-                <span className="text-sm text-gray-800 leading-snug">{center.address || 'Адрес не указан'}</span>
+                <MapPin size={15} className="text-cyan-600 shrink-0" />
+                <span className="text-xs text-gray-800 leading-snug">{center.address || 'Адрес не указан'}</span>
               </div>
-              <ChevronRight size={14} className="text-gray-300 shrink-0" />
+              <ChevronRight size={13} className="text-gray-300 shrink-0" />
             </div>
-            <div className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
               <div className="flex items-center gap-3">
-                <Phone size={16} className="text-cyan-600 shrink-0" />
-                <a href={`tel:${center.phone}`} className="text-sm font-semibold text-cyan-600">
+                <Phone size={15} className="text-cyan-600 shrink-0" />
+                <a href={`tel:${center.phone}`} className="text-xs font-semibold text-cyan-600">
                   {center.phone && center.phone !== 'unknown' ? center.phone : 'Уточняйте по запросу'}
                 </a>
               </div>
               <button onClick={copyPhone} className="p-1 hover:text-cyan-600 text-gray-400 transition-colors">
-                {copied ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
+                {copied ? <CheckCircle2 size={13} className="text-green-500" /> : <Copy size={13} />}
               </button>
             </div>
-            <div className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
               <div className="flex items-center gap-3">
-                <Clock size={16} className="text-cyan-600 shrink-0" />
-                <span className="text-sm text-gray-800">{center.workingHours || 'Уточняйте по телефону'}</span>
+                <Clock size={15} className="text-cyan-600 shrink-0" />
+                <span className="text-xs text-gray-800">{center.workingHours || 'Уточняйте по телефону'}</span>
               </div>
-              <span className="text-xs text-gray-400 font-medium">Ежедневно</span>
+              <span className="text-[10px] text-gray-400 font-medium">Ежедневно</span>
             </div>
           </div>
 
           {/* Programs */}
           {programs.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-3">Программы реабилитации</h3>
-              <div className="flex flex-wrap gap-2">
+              <h3 className="text-sm font-bold text-gray-900 mb-2">Программы реабилитации</h3>
+              <div className="flex flex-wrap gap-1.5">
                 {programs.map((p) => (
-                  <span key={p} className="text-xs font-medium px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                  <span key={p} className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
                     {p}
                   </span>
                 ))}
@@ -235,12 +184,12 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
           {/* Advantages */}
           {center.advantages && center.advantages.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-3">Преимущества центра</h3>
-              <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-bold text-gray-900 mb-2">Преимущества центра</h3>
+              <div className="flex flex-col gap-1.5">
                 {center.advantages.map((adv) => (
-                  <div key={adv} className="flex items-start gap-2.5">
-                    <CheckCircle2 size={15} className="text-green-500 shrink-0 mt-0.5" />
-                    <span className="text-sm text-gray-700 leading-snug">{adv}</span>
+                  <div key={adv} className="flex items-start gap-2">
+                    <CheckCircle2 size={14} className="text-green-500 shrink-0 mt-0.5" />
+                    <span className="text-xs text-gray-700 leading-snug">{adv}</span>
                   </div>
                 ))}
               </div>
@@ -250,19 +199,19 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
           {/* Reviews */}
           {center.reviews && center.reviews.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-3">Отзывы</h3>
-              <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-gray-900 mb-2">Отзывы</h3>
+              <div className="flex flex-col gap-2">
                 {center.reviews.slice(0, 2).map((rev, i) => (
-                  <div key={i} className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-bold text-gray-900">{rev.author || 'Пациент'}</span>
+                  <div key={i} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-gray-900">{rev.author || 'Пациент'}</span>
                       <div className="flex items-center gap-0.5">
                         {Array.from({ length: rev.rating || 0 }).map((_, j) => (
-                          <Star key={j} size={12} className="fill-yellow-400 text-yellow-400" />
+                          <Star key={j} size={11} className="fill-yellow-400 text-yellow-400" />
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">{rev.text || ''}</p>
+                    <p className="text-xs text-gray-600 leading-relaxed">{rev.text || ''}</p>
                   </div>
                 ))}
               </div>
@@ -270,22 +219,22 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
           )}
         </div>
 
-        {/* Bottom Action Buttons — with safe-area inset */}
-        <div className="flex-shrink-0 px-5 pt-4 border-t border-gray-100 flex flex-col gap-2.5"
-          style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+        {/* Bottom Action Buttons */}
+        <div className="flex-shrink-0 px-5 pt-3 border-t border-gray-100 flex flex-col gap-2"
+          style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
           <a
             href={googleMapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200 active:scale-[0.97]"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200 active:scale-[0.97]"
           >
-            <Navigation2 size={16} /> Открыть в Google Maps
+            <Navigation2 size={15} /> Открыть в Google Maps
           </a>
           <a
             href={`tel:${center.phone}`}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
           >
-            <Phone size={15} className="text-cyan-600" /> Позвонить по номеру
+            <Phone size={14} className="text-cyan-600" /> Позвонить по номеру
           </a>
         </div>
       </motion.div>
