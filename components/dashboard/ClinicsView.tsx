@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, Phone, MapPin, Clock, ChevronRight, Building2,
   SlidersHorizontal, Search, Heart, X, Globe, Navigation2,
-  CheckCircle2, Copy, ExternalLink
+  CheckCircle2, Copy, ExternalLink, MessageCircle, Banknote
 } from 'lucide-react';
 import clinicsData from '@/data/clinics.json';
 import dynamic from 'next/dynamic';
@@ -28,6 +28,9 @@ interface Clinic {
   reviews?: Review[];
   distance?: number;
   open?: boolean;
+  image?: string;
+  priceFrom?: number;
+  price_list?: { service: string; price: number; currency: string }[];
 }
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -42,7 +45,7 @@ function StarRating({ rating }: { rating: number }) {
 
 /* ─── Drawer ─────────────────────────────────────────────────── */
 function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void }) {
-  const googleMapsUrl = buildGoogleMapsUrl(clinic.lat, clinic.lng);
+  const googleMapsUrl = buildGoogleMapsUrl(clinic.lat, clinic.lng, clinic.address);
   const loadInfo = clinic.load ? getLoadInfo(clinic.load) : null;
   const [copied, setCopied] = useState(false);
 
@@ -85,6 +88,24 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
           <div className="w-10 h-1 rounded-full bg-gray-300" />
         </div>
 
+        {/* Clinic Image Header Banner */}
+        {clinic.image && (
+          <div className="relative h-48 w-full shrink-0 overflow-hidden bg-gray-100 border-b border-gray-100">
+            <img
+              src={clinic.image}
+              alt={clinic.name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/85 backdrop-blur-md hover:bg-white text-gray-800 shadow-md flex items-center justify-center transition-all z-20 active:scale-90"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex-shrink-0 px-5 pt-4 pb-4 border-b border-gray-100">
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -95,10 +116,12 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
             }`}>
               {clinic.type === 'private' ? 'Частная клиника' : 'Государственная клиника'}
             </span>
-            <button onClick={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors shrink-0">
-              <X size={15} />
-            </button>
+            {!clinic.image && (
+              <button onClick={onClose}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors shrink-0">
+                <X size={15} />
+              </button>
+            )}
           </div>
           <h2 className="text-xl font-black text-gray-900 leading-tight">{clinic.name || 'Клиника'}</h2>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
@@ -155,6 +178,17 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
                 {copied ? <CheckCircle2 size={13} className="text-green-500" /> : <Copy size={13} />}
               </button>
             </div>
+            {clinic.phone && (
+              <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <MessageCircle size={15} className="text-[#25D366] shrink-0" />
+                  <a href={`https://wa.me/${clinic.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#25D366] hover:underline">
+                    Связаться в WhatsApp
+                  </a>
+                </div>
+                <ExternalLink size={12} className="text-gray-300 shrink-0" />
+              </div>
+            )}
             <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
               <div className="flex items-center gap-3">
                 <Clock size={15} className="text-blue-600 shrink-0" />
@@ -175,6 +209,24 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
               </div>
             )}
           </div>
+
+          {/* Price list */}
+          {clinic.price_list && clinic.price_list.length > 0 && (
+            <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
+              <h3 className="text-sm font-bold text-emerald-900 mb-3 flex items-center gap-1.5">
+                <Banknote size={15} className="text-emerald-600" /> Цены на услуги
+              </h3>
+              <div className="flex flex-col gap-2 max-h-48 overflow-y-auto scrollbar-thin">
+                {clinic.price_list.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-xs border-b border-dashed border-gray-200 pb-1.5 last:border-0 last:pb-0">
+                    <span className="text-gray-600 font-medium text-left pr-2">{item.service}</span>
+                    <span className="font-bold text-emerald-700 whitespace-nowrap">{item.price.toLocaleString('ru-RU')} {item.currency}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
 
           {/* Services */}
           {clinic.services && clinic.services.length > 0 && (
@@ -260,16 +312,28 @@ function ClinicDrawer({ clinic, onClose }: { clinic: Clinic; onClose: () => void
             href={googleMapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200 active:scale-[0.97]"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-md active:scale-[0.97]"
           >
-            <Navigation2 size={15} /> Открыть в Google Maps
+            <Navigation2 size={15} /> Маршрут Google Maps
           </a>
-          <a
-            href={`tel:${clinic.phone}`}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
-          >
-            <Phone size={15} className="text-blue-600" /> Позвонить по номеру
-          </a>
+          <div className="flex gap-2">
+            <a
+              href={`tel:${clinic.phone}`}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
+            >
+              <Phone size={14} className="text-blue-600" /> Позвонить
+            </a>
+            {clinic.phone && (
+              <a
+                href={`https://wa.me/${clinic.phone.replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#1ebe5c] transition-all active:scale-[0.97]"
+              >
+                <MessageCircle size={14} /> WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>
@@ -303,13 +367,21 @@ function ClinicCard({
           : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
       }`}
     >
-      {/* Photo placeholder */}
-      <div className="relative h-36 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 flex items-center justify-center overflow-hidden">
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-          clinic.type === 'private' ? 'bg-blue-200/60' : 'bg-emerald-200/60'
-        }`}>
-          <Building2 size={28} className={clinic.type === 'private' ? 'text-blue-600' : 'text-emerald-600'} />
-        </div>
+      {/* Photo header */}
+      <div className="relative h-36 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 overflow-hidden flex items-center justify-center">
+        {clinic.image ? (
+          <img
+            src={clinic.image}
+            alt={clinic.name}
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          />
+        ) : (
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
+            clinic.type === 'private' ? 'bg-blue-200/60' : 'bg-emerald-200/60'
+          }`}>
+            <Building2 size={28} className={clinic.type === 'private' ? 'text-blue-600' : 'text-emerald-600'} />
+          </div>
+        )}
         {/* Status badge */}
         <div className="absolute top-2.5 left-2.5 flex gap-1.5">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -367,13 +439,55 @@ function ClinicCard({
           )}
         </div>
 
-        {/* Open button */}
-        <button
-          onClick={onOpen}
-          className="mt-1 w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-bold text-[#2563EB] bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-all active:scale-[0.97]"
-        >
-          Подробнее <ChevronRight size={12} />
-        </button>
+        {/* Quick info row: Hours + Price */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
+            <Clock size={10} className="text-gray-400" />
+            {clinic.workingHours?.split(',')[0] || clinic.workingHours}
+          </span>
+          {clinic.priceFrom && (
+            <span className="ml-auto flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5">
+              <Banknote size={10} />
+              от {clinic.priceFrom.toLocaleString('ru-RU')} ₸
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="mt-1 flex gap-1.5">
+          <a
+            href={`tel:${clinic.phone}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all active:scale-95"
+            title="Позвонить"
+          >
+            <Phone size={12} /> Звонок
+          </a>
+          <a
+            href={`https://wa.me/${clinic.phone?.replace(/[^0-9]/g, '')}`}
+            target="_blank" rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#1ebe5c] transition-all active:scale-95"
+            title="WhatsApp"
+          >
+            <MessageCircle size={12} />
+          </a>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clinic.name + ' ' + clinic.address)}`}
+            target="_blank" rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all active:scale-95"
+            title="Google Maps"
+          >
+            <Navigation2 size={12} />
+          </a>
+          <button
+            onClick={onOpen}
+            className="flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-xs font-bold text-[#2563EB] bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-all active:scale-95"
+          >
+            <ChevronRight size={12} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );

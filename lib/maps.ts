@@ -48,10 +48,14 @@ export function getDistanceFromHub(lat: number, lng: number): number {
 
 /**
  * Build a Google Maps route URL from dynamic user origin to destination.
+ * Prefer address string over coordinates for accurate local routing.
  */
-export function buildGoogleMapsUrl(destLat: number, destLng: number): string {
+export function buildGoogleMapsUrl(destLat: number, destLng: number, address?: string): string {
   const origin = getUserCoords();
-  return `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destLat},${destLng}&travelmode=driving`;
+  const destination = address
+    ? encodeURIComponent(address)
+    : `${destLat},${destLng}`;
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination}&travelmode=driving`;
 }
 
 /**

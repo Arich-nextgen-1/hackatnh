@@ -35,6 +35,7 @@ export interface Clinic {
   type: 'public' | 'private';
   lat: number;
   lng: number;
+  image?: string;
 }
 
 export interface RehabCenter {

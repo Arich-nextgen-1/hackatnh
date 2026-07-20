@@ -100,14 +100,23 @@ export default function DashboardMap({
       document.head.appendChild(link);
     }
 
-    if (!document.getElementById('leaflet-js')) {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.id = 'leaflet-js';
-      script.async = true;
-      script.onload = () => setLoaded(true);
-      document.head.appendChild(script);
+    const existingScript = document.getElementById('leaflet-js');
+    if (existingScript) {
+      // Script tag already in DOM (added by another instance) but may not have
+      // fired onload for us — poll until window.L becomes available.
+      const poll = setInterval(() => {
+        if (window.L) { clearInterval(poll); setLoaded(true); }
+      }, 80);
+      return () => clearInterval(poll);
     }
+
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.id = 'leaflet-js';
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    script.onerror = () => console.error('[DashboardMap] Failed to load Leaflet');
+    document.head.appendChild(script);
   }, []);
 
   // ── 2. Initialize MapContainer ONCE when Leaflet is ready ───────
@@ -239,7 +248,9 @@ export default function DashboardMap({
       const color = m.type === 'rehab' ? '#06B6D4' : m.type === 'private' ? '#10B981' : '#2563EB';
       const icon = createCustomIcon(color, isActive, isHovered);
 
-      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${m.lat},${m.lng}&travelmode=driving`;
+      // Use address string as destination so Google Maps resolves the correct location in Shymkent
+      const destQuery = encodeURIComponent(m.address || `${m.lat},${m.lng}`);
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${destQuery}&travelmode=driving`;
       const popupHtml = `
         <div style="padding:12px 14px;min-width:200px;">
           <h4 style="margin:0 0 4px;font-weight:700;color:#172033;font-size:13px;line-height:1.3;">${m.name}</h4>
@@ -361,7 +372,7 @@ export default function DashboardMap({
       <div ref={mapContainerRef} className="w-full h-full z-10" />
       {activeMarkerData && Number.isFinite(activeMarkerData.lat) && Number.isFinite(activeMarkerData.lng) && (
         <a
-          href={`https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${activeMarkerData.lat},${activeMarkerData.lng}&travelmode=driving`}
+          href={`https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${encodeURIComponent(activeMarkerData.name + ', Шымкент')}&travelmode=driving`}
           target="_blank"
           rel="noreferrer"
           className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2563EB] text-white text-xs font-bold shadow-xl shadow-blue-300/50 hover:bg-[#1D4ED8] transition-all active:scale-[0.97] whitespace-nowrap"

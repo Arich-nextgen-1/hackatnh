@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   History, Sparkles, Calendar, MapPin, Stethoscope,
-  ArrowRight, ChevronDown, ChevronUp, Trash2
+  ArrowRight, ChevronDown, ChevronUp, Trash2, FileDown
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import clinicsData from '@/data/clinics.json';
 import rehabsData from '@/data/rehabilitation.json';
+import { generateAndPrintPDF } from '@/lib/pdfGenerator';
 
 interface SavedRoute {
   route: any;
@@ -248,6 +249,32 @@ export default function HistoryView() {
                           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all"
                         >
                           Посмотреть маршрут <ArrowRight size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const topClinicId = route.clinics?.[0] ?? null;
+                            const topClinic = topClinicId
+                              ? (clinicsData as any[]).find((c) => c.id === topClinicId)
+                              : route.recommended_clinics?.[0];
+                            generateAndPrintPDF({
+                              date: item.date,
+                              query: item.query || route.query || 'Консультация',
+                              specialist: route.specialist || 'Специалист',
+                              confidenceScore: route.confidence_score,
+                              urgency: route.urgency,
+                              reasons: route.reasons,
+                              clinic: topClinic ? {
+                                name: topClinic.name,
+                                address: topClinic.address,
+                                phone: topClinic.phone,
+                                rating: topClinic.rating,
+                              } : undefined,
+                            });
+                          }}
+                          className="w-11 h-11 rounded-xl flex items-center justify-center border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all"
+                          title="Скачать PDF"
+                        >
+                          <FileDown size={14} />
                         </button>
                         <button
                           onClick={() => deleteItem(i)}

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, Phone, MapPin, Clock, ChevronRight, Dumbbell,
   SlidersHorizontal, Search, Heart, X, Globe, Navigation2,
-  CheckCircle2, Copy, ExternalLink
+  CheckCircle2, Copy, ExternalLink, MessageCircle, Banknote
 } from 'lucide-react';
 import rehabsData from '@/data/rehabilitation.json';
 import dynamic from 'next/dynamic';
@@ -15,17 +15,24 @@ const DashboardMap = dynamic(() => import('./DashboardMap'), { ssr: false });
 
 /* ─── Types ─────────────────────────────────────────────────── */
 interface Review { author: string; rating: number; text: string; }
+interface PriceItem { service: string; price: number; currency: string; }
 interface RehabCenter {
-  id: string; name: string; address: string; rating: number; reviewCount: number;
-  phone: string; description: string; programs?: string[]; services?: string[];
-  workingHours: string; capacity?: number; lat: number; lng: number; type?: string;
+  id: string; name: string; short_name?: string; address: string; rating: number; reviewCount: number;
+  phone: string; phones?: string[]; email?: string; description?: string;
+  programs?: string[]; services?: string[];
+  workingHours: string; capacity?: number;
+  lat: number | null; lng: number | null; type?: string;
   load?: 'low' | 'medium' | 'high';
   categories?: string[];
   badges?: string[];
+  image?: string;
+  priceFrom?: number;
+  price_list?: PriceItem[];
   advantages?: string[];
   reviews?: Review[];
   distance?: number;
   open?: boolean;
+  website?: string;
 }
 
 const CATEGORY_FILTERS = [
@@ -50,7 +57,7 @@ function StarRating({ rating }: { rating: number }) {
 
 /* ─── Drawer ─────────────────────────────────────────────────── */
 function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => void }) {
-  const googleMapsUrl = buildGoogleMapsUrl(center.lat, center.lng);
+  const googleMapsUrl = center.lat && center.lng ? buildGoogleMapsUrl(center.lat, center.lng, center.address) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(center.name + ' ' + center.address)}`;
   const loadInfo = center.load ? getLoadInfo(center.load) : null;
   const programs = center.programs ?? center.services ?? [];
   const [copied, setCopied] = useState(false);
@@ -91,6 +98,17 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
         <div className="flex justify-center pt-3 pb-1 shrink-0 lg:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-300" />
         </div>
+
+        {/* Clinic Image Header Banner */}
+        {center.image && (
+          <div className="relative h-44 w-full shrink-0 overflow-hidden bg-gray-100 border-b border-gray-100">
+            <img src={center.image} alt={center.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+            <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/85 backdrop-blur-md hover:bg-white text-gray-800 shadow-md flex items-center justify-center transition-all z-20 active:scale-90">
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex-shrink-0 px-5 pt-4 pb-4 border-b border-gray-100">
@@ -158,6 +176,17 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
                 {copied ? <CheckCircle2 size={13} className="text-green-500" /> : <Copy size={13} />}
               </button>
             </div>
+            {center.phone && (
+              <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <MessageCircle size={15} className="text-[#25D366] shrink-0" />
+                  <a href={`https://wa.me/${center.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#25D366] hover:underline">
+                    Написать в WhatsApp
+                  </a>
+                </div>
+                <ExternalLink size={12} className="text-gray-300 shrink-0" />
+              </div>
+            )}
             <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
               <div className="flex items-center gap-3">
                 <Clock size={15} className="text-cyan-600 shrink-0" />
@@ -165,7 +194,37 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
               </div>
               <span className="text-[10px] text-gray-400 font-medium">Ежедневно</span>
             </div>
+            {center.website && (
+              <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Globe size={15} className="text-cyan-600 shrink-0" />
+                  <a href={center.website} target="_blank" rel="noreferrer" className="text-xs text-cyan-600 hover:underline truncate max-w-[200px]">
+                    {center.website.replace(/^https?:\/\//, '')}
+                  </a>
+                </div>
+                <ExternalLink size={12} className="text-gray-300 shrink-0" />
+              </div>
+            )}
           </div>
+
+          {/* Price list */}
+          {center.price_list && center.price_list.length > 0 && (
+            <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
+              <h3 className="text-sm font-bold text-emerald-900 mb-3 flex items-center gap-1.5">
+                <Banknote size={15} className="text-emerald-600" /> Цены на услуги
+              </h3>
+              <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                {center.price_list.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-xs border-b border-dashed border-gray-200 pb-1.5 last:border-0 last:pb-0">
+                    <span className="text-gray-600 font-medium text-left pr-2">{item.service}</span>
+                    <span className="font-bold text-emerald-700 whitespace-nowrap">
+                      {item.price === 0 ? 'Бесплатно' : `${item.price.toLocaleString('ru-RU')} ${item.currency}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Programs */}
           {programs.length > 0 && (
@@ -226,16 +285,27 @@ function RehabDrawer({ center, onClose }: { center: RehabCenter; onClose: () => 
             href={googleMapsUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-200 active:scale-[0.97]"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all shadow-md active:scale-[0.97]"
           >
-            <Navigation2 size={15} /> Открыть в Google Maps
+            <Navigation2 size={15} /> Маршрут Google Maps
           </a>
-          <a
-            href={`tel:${center.phone}`}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
-          >
-            <Phone size={14} className="text-cyan-600" /> Позвонить по номеру
-          </a>
+          <div className="flex gap-2">
+            <a
+              href={`tel:${center.phone}`}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.97]"
+            >
+              <Phone size={13} className="text-cyan-600" /> Позвонить
+            </a>
+            {center.phone && (
+              <a
+                href={`https://wa.me/${center.phone.replace(/[^0-9]/g, '')}`}
+                target="_blank" rel="noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#1ebe5c] transition-all active:scale-[0.97]"
+              >
+                <MessageCircle size={13} /> WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>
@@ -269,11 +339,15 @@ function RehabCard({
           : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
       }`}
     >
-      {/* Photo placeholder */}
+      {/* Image or placeholder */}
       <div className="relative h-36 bg-gradient-to-br from-cyan-50 via-cyan-100 to-teal-50 flex items-center justify-center overflow-hidden">
-        <div className="w-16 h-16 rounded-2xl bg-cyan-200/60 flex items-center justify-center">
-          <Dumbbell size={28} className="text-cyan-600" />
-        </div>
+        {center.image ? (
+          <img src={center.image} alt={center.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-16 h-16 rounded-2xl bg-cyan-200/60 flex items-center justify-center">
+            <Dumbbell size={28} className="text-cyan-600" />
+          </div>
+        )}
         {/* Status badge */}
         <div className="absolute top-2.5 left-2.5 flex gap-1.5">
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-600 text-white">
@@ -327,13 +401,37 @@ function RehabCard({
           )}
         </div>
 
-        {/* Open button */}
-        <button
-          onClick={onOpen}
-          className="mt-1 w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-bold text-cyan-600 bg-cyan-50 hover:bg-cyan-100 border border-cyan-100 transition-all active:scale-[0.97]"
-        >
-          Подробнее <ChevronRight size={12} />
-        </button>
+        {/* Quick info + price */}
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
+            <Clock size={10} className="text-gray-400" />
+            {center.workingHours?.split(',')[0]}
+          </span>
+          {center.priceFrom !== undefined && (
+            <span className="ml-auto flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5">
+              <Banknote size={10} />
+              {center.priceFrom === 0 ? 'Бесплатно' : `от ${center.priceFrom.toLocaleString('ru-RU')} ₸`}
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-1.5">
+          <a href={`tel:${center.phone}`} onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 transition-all active:scale-95">
+            <Phone size={12} /> Звонок
+          </a>
+          {center.phone && (
+            <a href={`https://wa.me/${center.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center gap-1 py-2 px-3 rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#1ebe5c] transition-all active:scale-95">
+              <MessageCircle size={12} />
+            </a>
+          )}
+          <button onClick={onOpen}
+            className="flex items-center justify-center py-2 px-3 rounded-xl text-xs font-bold text-cyan-600 bg-cyan-50 hover:bg-cyan-100 border border-cyan-100 transition-all active:scale-95">
+            <ChevronRight size={12} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -364,9 +462,9 @@ export default function RehabView() {
     window.localStorage.setItem('mediroute_rehab_favorites', JSON.stringify(updated));
   };
 
-  const enriched: RehabCenter[] = (rehabsData as RehabCenter[]).map((c) => ({
+  const enriched: RehabCenter[] = (rehabsData as unknown as RehabCenter[]).map((c) => ({
     ...c,
-    distance: getDistanceFromHub(c.lat, c.lng),
+    distance: (c.lat && c.lng) ? getDistanceFromHub(c.lat, c.lng) : undefined,
     open: isOpenNow(c.workingHours),
   }));
 
@@ -386,15 +484,17 @@ export default function RehabView() {
       return (b.rating ?? 0) - (a.rating ?? 0);
     });
 
-  const mapMarkers = filtered.map((c) => ({
-    id: c.id, name: c.name, address: c.address,
-    rating: c.rating ?? 0, lat: c.lat, lng: c.lng,
-    type: 'rehab' as const,
-  }));
+  const mapMarkers = filtered
+    .filter((c): c is RehabCenter & { lat: number; lng: number } => c.lat != null && c.lng != null)
+    .map((c) => ({
+      id: c.id, name: c.name, address: c.address,
+      rating: c.rating ?? 0, lat: c.lat, lng: c.lng,
+      type: 'rehab' as const,
+    }));
 
   const mapCenter: [number, number] = activeRehabId
-    ? (() => { const f = filtered.find((c) => c.id === activeRehabId); return f ? [f.lat, f.lng] : [42.3167, 69.5833]; })()
-    : filtered.length > 0 ? [filtered[0].lat, filtered[0].lng] : [42.3167, 69.5833];
+    ? (() => { const f = filtered.find((c) => c.id === activeRehabId); return (f?.lat && f?.lng) ? [f.lat, f.lng] : [42.3167, 69.5833]; })()
+    : (filtered.length > 0 && filtered[0].lat && filtered[0].lng) ? [filtered[0].lat as number, filtered[0].lng as number] : [42.3167, 69.5833];
 
   return (
     <div className="h-full flex flex-col lg:flex-row">

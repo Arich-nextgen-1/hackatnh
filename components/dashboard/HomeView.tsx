@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark, Phone, Navigation2, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark, Phone, Navigation2, X, AlertTriangle, CheckCircle, FileDown } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { getGrokRoutingResponse, GrokMessage } from '@/services/grok';
 import clinicsData from '@/data/clinics.json';
@@ -10,6 +10,7 @@ import rehabsData from '@/data/rehabilitation.json';
 import dynamic from 'next/dynamic';
 import { buildGoogleMapsUrl, getDistanceFromHub } from '@/lib/maps';
 import { sanitizeRoute } from '@/services/grok';
+import { generateAndPrintPDF } from '@/lib/pdfGenerator';
 
 import { useRouter } from 'next/navigation';
 
@@ -879,7 +880,7 @@ export default function HomeView() {
                                 <span className="flex items-center gap-0.5"><Star size={10} className="fill-yellow-500 text-yellow-500" /> {(clinic.rating ?? 0).toFixed(1)}</span>
                                 {clinic.lat && (
                                   <a
-                                    href={buildGoogleMapsUrl(clinic.lat, clinic.lng)}
+                                    href={buildGoogleMapsUrl(clinic.lat, clinic.lng, clinic.address)}
                                     target="_blank" rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
                                     className="flex items-center gap-1 text-[#2563EB] font-bold hover:underline py-1 px-2 bg-blue-50 rounded-lg"
@@ -1025,7 +1026,7 @@ export default function HomeView() {
                   <div className="grid sm:grid-cols-2 gap-3 border-t border-gray-100 pt-5">
                     {recommendedClinics[0] && (
                       <a 
-                        href={buildGoogleMapsUrl(recommendedClinics[0].lat, recommendedClinics[0].lng)} 
+                        href={buildGoogleMapsUrl(recommendedClinics[0].lat, recommendedClinics[0].lng, recommendedClinics[0].address)} 
                         target="_blank" 
                         rel="noreferrer"
                         className="flex items-center justify-center gap-2 py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all text-center"
@@ -1079,6 +1080,31 @@ export default function HomeView() {
                   className="flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-2xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition-all"
                 >
                   <CheckCircle size={14} /> Сохранить маршрут
+                </button>
+                <button
+                  onClick={() => {
+                    const topClinic = recommendedClinics[0] as any;
+                    generateAndPrintPDF({
+                      patientName: profile?.name,
+                      patientAge: profile?.age,
+                      date: new Date().toISOString(),
+                      query: lastQuery || chatHistory.find(m => m.role === 'user')?.content || '',
+                      specialist: currentRoute?.specialist || 'Специалист',
+                      confidenceScore: currentRoute?.confidence_score,
+                      urgency: currentRoute?.urgency,
+                      reasons: currentRoute?.reasons,
+                      clinic: topClinic ? {
+                        name: topClinic.name,
+                        address: topClinic.address,
+                        phone: topClinic.phone,
+                        rating: topClinic.rating,
+                        distance: topClinic.lat ? getDistanceFromHub(topClinic.lat, topClinic.lng) : undefined,
+                      } : undefined,
+                    });
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-2xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all"
+                >
+                  <FileDown size={14} /> Скачать PDF
                 </button>
                 <button
                   onClick={handleReset}
