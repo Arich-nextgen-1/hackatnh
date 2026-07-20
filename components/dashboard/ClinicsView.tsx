@@ -504,19 +504,21 @@ function ClinicDrawer({ clinic, onClose, onShowOnMap }: { clinic: Clinic; onClos
 
           {/* Right Image Column on Desktop */}
           {clinic.image && (
-            <div className="hidden lg:flex lg:flex-1 h-full relative overflow-hidden bg-gray-100 border-l border-gray-100">
-              <img
-                src={clinic.image}
-                alt={clinic.name}
-                className="w-full h-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={onClose}
-                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur hover:bg-white text-gray-800 shadow-md flex items-center justify-center transition-all z-20 active:scale-90"
-              >
-                <X size={16} />
-              </button>
+            <div className="hidden lg:flex lg:flex-1 flex-col overflow-y-auto bg-gray-100 border-l border-gray-100">
+              <div className="relative w-full aspect-[16/10] overflow-hidden shrink-0">
+                <img
+                  src={clinic.image}
+                  alt={clinic.name}
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur hover:bg-white text-gray-800 shadow-md flex items-center justify-center transition-all z-20 active:scale-90"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
           )}
 
