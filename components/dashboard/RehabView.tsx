@@ -90,7 +90,7 @@ function RehabDrawer({ center, onClose, onShowOnMap }: { center: RehabCenter; on
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 340, damping: 36 }}
         className="relative z-10 bg-white w-full max-h-[90vh] rounded-t-[28px] flex flex-col overflow-hidden
-                   lg:translate-y-0 lg:rounded-none lg:rounded-l-3xl lg:max-h-full lg:h-full lg:w-[760px] lg:max-w-[760px]"
+                   lg:translate-y-0 lg:rounded-none lg:rounded-l-3xl lg:max-h-full lg:h-full lg:w-[900px] lg:max-w-[900px]"
         style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         {/* Mobile drag handle */}
@@ -113,7 +113,7 @@ function RehabDrawer({ center, onClose, onShowOnMap }: { center: RehabCenter; on
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden h-full">
 
           {/* Left Column: Details */}
-          <div className={`flex-1 flex flex-col overflow-hidden h-full ${center.image ? 'lg:w-1/2' : 'w-full'}`}>
+          <div className={`flex flex-col overflow-hidden h-full ${center.image ? 'lg:w-[40%] shrink-0' : 'flex-1 w-full'}`}>
 
             {/* Header */}
             <div className="flex-shrink-0 px-5 pt-4 pb-4 border-b border-gray-100">
@@ -455,7 +455,7 @@ function RehabDrawer({ center, onClose, onShowOnMap }: { center: RehabCenter; on
 
           {/* Right Image Column on Desktop */}
           {center.image && (
-            <div className="hidden lg:block lg:w-1/2 h-full relative overflow-hidden bg-gray-100 border-l border-gray-100 shrink-0">
+            <div className="hidden lg:flex lg:flex-1 h-full relative overflow-hidden bg-gray-100 border-l border-gray-100">
               <img
                 src={center.image}
                 alt={center.name}
