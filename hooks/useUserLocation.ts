@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-// Fallback: Шымкент, мкр Север 66/2
-export const FALLBACK_ORIGIN = { lat: 42.3417, lng: 69.5901, label: 'Шымкент, мкр Север 66/2' };
+// Fallback: Шымкент, микрорайон Терискей
+export const FALLBACK_ORIGIN = { lat: 42.345126, lng: 69.643014, label: 'микрорайон Терискей, Шымкент' };
 
 export type UserLocation = {
   lat: number;

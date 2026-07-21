@@ -1,5 +1,5 @@
-// Fallback: Шымкент, мкр Север 66/2
-export const FALLBACK_ORIGIN = { lat: 42.3417, lng: 69.5901 };
+// Fallback: Шымкент, микрорайон Терискей
+export const FALLBACK_ORIGIN = { lat: 42.345126, lng: 69.643014 };
 
 /**
  * Haversine distance in km between two coordinates.

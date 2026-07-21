@@ -23,10 +23,10 @@ export default function PwaRegister() {
         (err) => {
           console.warn('[Geolocation] Denied or error, using fallback:', err.message);
           const fallback = {
-            lat: 42.3417,
-            lng: 69.5901,
+            lat: 42.345126,
+            lng: 69.643014,
             isReal: false,
-            label: 'Шымкент, мкр Север 66/2'
+            label: 'микрорайон Терискей, Шымкент'
           };
           localStorage.setItem('user_coords', JSON.stringify(fallback));
           window.dispatchEvent(new Event('user_coords_updated'));
@@ -40,10 +40,10 @@ export default function PwaRegister() {
     } else {
       console.warn('[Geolocation] Not supported by browser, using fallback.');
       const fallback = {
-        lat: 42.3417,
-        lng: 69.5901,
+        lat: 42.345126,
+        lng: 69.643014,
         isReal: false,
-        label: 'Шымкент, мкр Север 66/2'
+        label: 'микрорайон Терискей, Шымкент'
       };
       localStorage.setItem('user_coords', JSON.stringify(fallback));
       window.dispatchEvent(new Event('user_coords_updated'));
