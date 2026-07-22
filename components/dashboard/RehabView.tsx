@@ -783,17 +783,15 @@ export default function RehabView() {
         </div>
       </div>
 
-      {/* Mobile "Открыть карту" button */}
-      <div className="lg:hidden px-5 pb-4">
-        <button
-          type="button"
-          onClick={() => setShowMapSheet(true)}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white border-2 border-[#DCE5EE] text-cyan-600 font-bold text-sm active:scale-[0.98] transition-all"
-        >
-          <MapPin size={16} />
-          Открыть карту
-        </button>
-      </div>
+      {/* Mobile "Открыть карту" button — fixed floating above bottom nav */}
+      <button
+        type="button"
+        onClick={() => setShowMapSheet(true)}
+        className="lg:hidden fixed bottom-24 left-4 right-4 z-30 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#2563EB] text-white font-bold text-sm shadow-xl active:scale-[0.98] transition-all"
+      >
+        <MapPin size={16} />
+        Открыть карту
+      </button>
 
       {/* Desktop map */}
       <div className="hidden lg:flex lg:flex-1 h-full border-l border-gray-200 relative bg-gray-50">
