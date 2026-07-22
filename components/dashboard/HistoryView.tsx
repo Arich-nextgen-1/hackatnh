@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   History, Sparkles, Calendar, MapPin, Stethoscope,
   ArrowRight, Trash2, FileDown, MoreHorizontal, Star,
-  Download, Filter, Clock, CheckCircle2
+  Download, Filter, Clock, CheckCircle2, HeartPulse, Activity,
+  Brain, Eye, UserCheck, ShieldCheck
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import clinicsData from '@/data/clinics.json';
@@ -69,17 +70,33 @@ function formatDate(raw: string) {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function getSpecialistIcon(specialist: string) {
+function SpecialistGlassIcon({ specialist }: { specialist: string }) {
   const s = specialist.toLowerCase();
-  if (s.includes('ортопед') || s.includes('хирург') || s.includes('травматолог')) return '🦴';
-  if (s.includes('кардио')) return '❤️';
-  if (s.includes('невролог') || s.includes('нейро')) return '🧠';
-  if (s.includes('окулист') || s.includes('офтальмолог')) return '👁️';
-  if (s.includes('дерматолог')) return '🩺';
-  if (s.includes('педиатр')) return '👶';
-  if (s.includes('гинеколог')) return '🌸';
-  if (s.includes('стоматолог')) return '🦷';
-  return '🩺';
+  let Icon = Stethoscope;
+  let colorClass = "text-[#2563EB] bg-[#2563EB]/10 border-[#2563EB]/20";
+
+  if (s.includes('ортопед') || s.includes('хирург') || s.includes('травматолог')) {
+    Icon = Activity;
+    colorClass = "text-[#2563EB] bg-[#2563EB]/10 border-[#2563EB]/20";
+  } else if (s.includes('кардио')) {
+    Icon = HeartPulse;
+    colorClass = "text-rose-600 bg-rose-500/10 border-rose-500/20";
+  } else if (s.includes('невролог') || s.includes('нейро')) {
+    Icon = Brain;
+    colorClass = "text-indigo-600 bg-indigo-500/10 border-indigo-500/20";
+  } else if (s.includes('окулист') || s.includes('офтальмолог')) {
+    Icon = Eye;
+    colorClass = "text-cyan-600 bg-cyan-500/10 border-cyan-500/20";
+  } else if (s.includes('педиатр') || s.includes('гинеколог')) {
+    Icon = UserCheck;
+    colorClass = "text-purple-600 bg-purple-500/10 border-purple-500/20";
+  }
+
+  return (
+    <div className={`w-12 h-12 rounded-[14px] border backdrop-blur-md flex items-center justify-center shadow-sm shrink-0 ${colorClass}`}>
+      <Icon size={22} />
+    </div>
+  );
 }
 
 function ContextMenu({ onDelete, onDownload, onView }: { onDelete: () => void; onDownload: () => void; onView: () => void }) {
@@ -386,9 +403,7 @@ export default function HistoryView() {
 
                       {/* Left: Icon + Timeline line */}
                       <div className="flex flex-col items-center shrink-0 self-stretch">
-                        <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-[#EEF3F8] to-[#DBEAFE] border border-[#E8EDF7] flex items-center justify-center text-xl shadow-sm shrink-0">
-                          {getSpecialistIcon(specialist)}
-                        </div>
+                        <SpecialistGlassIcon specialist={specialist} />
                         {displayIdx < filteredHistory.length - 1 && (
                           <div className="w-px flex-1 mt-3 bg-gradient-to-b from-[#DBEAFE] to-transparent min-h-[16px]" />
                         )}

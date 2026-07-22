@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark, Phone, Navigation2, X, AlertTriangle, CheckCircle, FileDown } from 'lucide-react';
+import { Sparkles, ArrowRight, Activity, Shield, Clock, Zap, MessageSquare, Heart, RefreshCw, AlertCircle, Stethoscope, Building2, HeartPulse, Route, UserRound, Star, MapPin, Bookmark, Phone, Navigation2, X, AlertTriangle, CheckCircle, CheckCircle2, Smartphone, FileDown } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { getGrokRoutingResponse, GrokMessage } from '@/services/grok';
 import clinicsData from '@/data/clinics.json';
@@ -96,6 +96,14 @@ export default function HomeView() {
   const [whyNotOpen, setWhyNotOpen] = useState<Record<string, boolean>>({});
   const [mobileViewTab, setMobileViewTab] = useState<'list' | 'map'>('list');
   const [showMapSheet, setShowMapSheet] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+      setIsInstalled(isStandalone);
+    }
+  }, []);
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1152,6 +1160,49 @@ export default function HomeView() {
           /* Premium Hero Redesign */
           <div className="flex flex-col gap-8 pb-8">
 
+            {/* Top PWA Banner */}
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between bg-gradient-to-r from-blue-50/90 via-white to-blue-50/50 border border-blue-100 rounded-[18px] px-5 py-3 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#2563EB]/10 text-[#2563EB] flex items-center justify-center shrink-0">
+                  <Smartphone size={18} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0F172A] flex items-center gap-2">
+                    MediRoute AI App
+                    {isInstalled ? (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">Скачано ✓</span>
+                    ) : (
+                      <span className="text-[10px] bg-blue-100 text-[#2563EB] px-2 py-0.5 rounded-full font-bold">PWA Офлайн</span>
+                    )}
+                  </div>
+                  <div className="text-[11.5px] text-[#64748B] font-medium">
+                    {isInstalled ? 'Приложение установлено и готово к работе без интернета' : 'Установите приложение для мгновенного доступа к маршрутам оффлайн'}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined' && (window as any).deferredPrompt) {
+                    (window as any).deferredPrompt.prompt();
+                  } else {
+                    alert('Для установки добавьте сайт на Экран "Домой" в меню браузера.');
+                  }
+                }}
+                className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-all ${
+                  isInstalled 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                    : 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-sm'
+                }`}
+                style={{ minHeight: 'unset', minWidth: 'unset' }}
+              >
+                {isInstalled ? 'Скачано ✓' : 'Установить'}
+              </button>
+            </motion.div>
+
             {/* Main Hero Card Container */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -1287,7 +1338,7 @@ export default function HomeView() {
               {[
                 { val: '24+', label: 'Клиник' },
                 { val: '12+', label: 'Специалистов' },
-                { val: '86%', label: 'Довольных пользователей' },
+                { val: '98%', label: 'Точность алгоритма' },
                 { isShield: true, title: 'Ваше здоровье', subtitle: 'Наш приоритет' },
               ].map((stat, i) => (
                 <div 
@@ -1341,6 +1392,64 @@ export default function HomeView() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="w-8 h-8 rounded-xl bg-[#F7FAFF] border border-[#E8EDF7] flex items-center justify-center text-[#2563EB]">
+                          <Building2 size={16} />
+                        </div>
+                        <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">
+                          <Star size={10} className="text-amber-400 fill-amber-400" />
+                          <span className="text-[11px] font-bold text-amber-600">{clinic.rating}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold text-[#0F172A] truncate">{clinic.name}</div>
+                        <div className="text-[11px] text-[#94A3B8] font-medium mt-1 flex items-center gap-1">
+                          <MapPin size={10} />
+                          <span>{clinic.address ? clinic.address.split(',')[0] : 'Шымкент'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Install App Card (4 cols) */}
+              <div className="lg:col-span-4 bg-white border border-[#E8EDF7] rounded-[20px] p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100">
+                      PWA App
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      {isInstalled ? 'Скачано ✓' : 'Offline Mode'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-[#0F172A]">
+                    {isInstalled ? 'Приложение установлено' : 'Установите приложение'}
+                  </h4>
+                  <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
+                    {isInstalled 
+                      ? 'MediRoute AI работает автономно без интернета.' 
+                      : 'Быстрый доступ к маршрутам даже без интернета.'}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-[#EEF3F8] flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-[#2563EB]">
+                    {isInstalled ? 'Скачано на устройство ✓' : 'Установить на экран'}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB]">
+                    {isInstalled ? <CheckCircle2 size={16} className="text-emerald-600" /> : <Smartphone size={16} />}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom update notice */}
+            <div className="text-center text-[11px] text-[#94A3B8] pt-2">
+              Данные клиник обновлены: Июль 2026 · MediRoute AI
+            </div>
+          </div>e="w-8 h-8 rounded-xl bg-[#F7FAFF] border border-[#E8EDF7] flex items-center justify-center text-[#2563EB]">
                           <Building2 size={16} />
                         </div>
                         <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">
