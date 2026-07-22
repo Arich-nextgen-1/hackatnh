@@ -1149,82 +1149,248 @@ export default function HomeView() {
             </div>
           </div>
         ) : (
-          /* Welcome state / Refined Hero-card Dashboard */
-          <div className="flex flex-col gap-6 px-1 py-2">
+          /* Premium Hero Redesign */
+          <div className="flex flex-col gap-8 pb-8">
+
+            {/* Main Hero Card Container */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="w-full bg-transparent sm:bg-card sm:border sm:border-[#DCE5EE] sm:shadow-[0_4px_24px_-4px_rgba(23,32,51,0.06)] sm:p-6 lg:p-8 rounded-3xl flex flex-col gap-6"
+              className="relative w-full bg-white border border-[#E8EDF7] shadow-[0_4px_30px_rgba(15,23,42,0.04)] rounded-[24px] overflow-hidden p-6 lg:p-10"
             >
-              <div className="text-left">
-                <h3 className="text-3xl sm:text-2xl font-black text-[#172033] tracking-tight">Здравствуйте, {profile?.name?.split(' ')[0] ?? 'Арман'}</h3>
-                <p className="text-sm sm:text-xs text-[#64748B] mt-1 font-medium">Опишите ваши симптомы или медицинский вопрос.</p>
-              </div>
+              {/* Subtle background glow & wallpaper overlay */}
+              <div 
+                className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none bg-no-repeat bg-cover bg-right"
+                style={{ backgroundImage: `url('/images/hero-bg.png')` }}
+              />
+              <div className="absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-br from-blue-100/50 via-cyan-50/30 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative">
-                <textarea
-                  placeholder="Например: болит колено после падения, температура 37.5°C, боль длится 3 дня..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full input-field rounded-2xl px-4 py-4 text-base resize-none leading-relaxed font-sans border-2 border-[#DCE5EE] focus:border-[#2563EB] focus:ring-4 focus:ring-blue-50 transition-all bg-white shadow-sm"
-                />
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <button
-                  onClick={handleStartConsultation}
-                  disabled={!description.trim() || loading}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-extrabold shadow-lg shadow-blue-200 active:scale-[0.97] transition-all disabled:opacity-50 disabled:pointer-events-none"
-                  style={{ minHeight: '48px' }}
-                >
-                  Начать анализ <ArrowRight size={16} />
-                </button>
+              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                 
-                <span className="text-[11px] text-[#94A3B8] text-center font-medium">
-                  Рекомендации ИИ носят исключительно ознакомительный характер
-                </span>
-              </div>
+                {/* LEFT COLUMN (60% ~ 7 cols) */}
+                <div className="lg:col-span-7 flex flex-col gap-6">
+                  <div>
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#2563EB] border border-blue-100 mb-4">
+                      <Sparkles size={13} />
+                      MediRoute AI Assistant
+                    </span>
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight leading-[1.15]">
+                      Как мы можем помочь сегодня?
+                    </h1>
+                    <p className="text-base text-[#64748B] mt-3 leading-relaxed font-normal">
+                      Опишите симптомы, и AI подберёт специалиста, клинику и оптимальный маршрут лечения.
+                    </p>
+                  </div>
 
+                  {/* Textarea Input */}
+                  <div className="relative">
+                    <textarea
+                      placeholder="Например: болит колено после падения, температура 37.5°C..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={4}
+                      className="w-full bg-[#F7FAFF] border border-[#E8EDF7] rounded-[20px] p-4 text-base text-[#0F172A] placeholder-[#94A3B8] resize-none focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-4 focus:ring-blue-50 transition-all shadow-inner"
+                    />
+                  </div>
 
+                  {/* Button & Privacy Info */}
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={handleStartConsultation}
+                      disabled={!description.trim() || loading}
+                      className="w-full flex items-center justify-center gap-2 py-4 rounded-[18px] text-base font-bold text-white bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:shadow-[0_6px_20px_rgba(37,99,235,0.35)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none shadow-md"
+                      style={{ minHeight: '52px' }}
+                    >
+                      ✨ Начать анализ →
+                    </button>
 
-              {/* Quick Actions Buttons */}
-              <div className="flex flex-col gap-3 mt-4 pt-6 border-t border-[#EEF3F8]">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Быстрые действия</div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => router.push('/dashboard/clinics')}
-                    className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-blue-100 bg-blue-50 hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all min-h-[100px] justify-between shadow-sm active:scale-[0.97]"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-[#2563EB] shrink-0">
-                      <Building2 size={16} />
+                    <div className="flex items-center justify-center gap-1.5 text-[11.5px] text-[#94A3B8] font-medium">
+                      <Shield size={13} className="text-[#2563EB] shrink-0" />
+                      <span>Ваши данные защищены и используются только для построения маршрута лечения.</span>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-blue-700">Подобрать клинику</div>
-                      <div className="text-[10px] text-blue-600 mt-0.5 leading-tight font-semibold">Поиск и сравнение центров</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => router.push('/dashboard/history')}
-                    className="flex flex-col items-start gap-2.5 p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100/50 hover:border-gray-200 text-left transition-all min-h-[100px] justify-between shadow-sm active:scale-[0.97]"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-gray-500/10 flex items-center justify-center text-gray-500 shrink-0">
-                      <Clock size={16} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-gray-700">История консультаций</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5 leading-tight font-semibold">Ваши сохраненные маршруты</div>
-                    </div>
-                  </button>
+                  </div>
                 </div>
+
+                {/* RIGHT COLUMN (40% ~ 5 cols) */}
+                <div className="lg:col-span-5 flex flex-col gap-5">
+
+                  {/* Illustration Container with glass effect */}
+                  <div className="relative w-full h-44 rounded-[20px] bg-gradient-to-br from-[#E0EEFF] via-[#EEF3F8] to-[#F7FAFF] border border-[#E8EDF7] overflow-hidden flex items-center justify-center shadow-inner">
+                    <img 
+                      src="/images/hero-bg.png" 
+                      alt="Medical AI" 
+                      className="absolute inset-0 w-full h-full object-cover opacity-85 mix-blend-multiply"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-transparent" />
+                    
+                    {/* Floating elements overlay */}
+                    <div className="relative z-10 flex items-center justify-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-white/90 backdrop-blur-md shadow-md border border-white/80 flex items-center justify-center text-[#2563EB] animate-bounce" style={{ animationDuration: '3s' }}>
+                        <Stethoscope size={24} />
+                      </div>
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] shadow-lg text-white flex items-center justify-center font-black text-2xl">
+                        +
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-white/90 backdrop-blur-md shadow-md border border-white/80 flex items-center justify-center text-emerald-500 animate-pulse">
+                        <HeartPulse size={24} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Elegant Timeline Card */}
+                  <div className="bg-white/90 backdrop-blur-sm border border-[#E8EDF7] rounded-[20px] p-5 shadow-sm">
+                    <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-3.5">
+                      Ваш путь к здоровью
+                    </h4>
+
+                    <div className="flex flex-col gap-2.5">
+                      {[
+                        { label: 'Анализ симптомов', done: true },
+                        { label: 'Подбор специалиста', done: true },
+                        { label: 'Поиск клиники', done: true },
+                        { label: 'Маршрут лечения', done: false },
+                        { label: 'Начало лечения', done: false },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2.5 text-xs">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                            item.done 
+                              ? 'bg-emerald-100 text-emerald-600 border border-emerald-200' 
+                              : 'bg-[#F1F5F9] text-[#94A3B8] border border-[#E8EDF7]'
+                          }`}>
+                            {item.done ? '✓' : '○'}
+                          </span>
+                          <span className={item.done ? 'text-[#0F172A] font-semibold' : 'text-[#94A3B8] font-normal'}>
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-[#EEF3F8] text-[11px] text-[#64748B] font-medium text-center">
+                      Мы рядом на каждом этапе.
+                    </div>
+                  </div>
+
+                </div>
+
               </div>
             </motion.div>
 
-            {/* Bottom update block */}
-            <div className="text-[10px] text-gray-400 text-center mt-6">
-              Данные клиник обновлены: Июль 2026
+            {/* Statistics Strip */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+            >
+              {[
+                { val: '24+', label: 'Клиник' },
+                { val: '12+', label: 'Специалистов' },
+                { val: '86%', label: 'Довольных пользователей' },
+                { isShield: true, title: 'Ваше здоровье', subtitle: 'Наш приоритет' },
+              ].map((stat, i) => (
+                <div 
+                  key={i} 
+                  className="bg-white border border-[#E8EDF7] rounded-[20px] p-4 flex flex-col justify-center items-center text-center shadow-sm"
+                >
+                  {stat.isShield ? (
+                    <div className="flex items-center gap-2.5 text-left">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] shrink-0">
+                        <Shield size={20} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[#0F172A]">{stat.title}</div>
+                        <div className="text-[11px] text-[#64748B] font-medium">{stat.subtitle}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-extrabold text-[#2563EB] tracking-tight">{stat.val}</div>
+                      <div className="text-xs text-[#64748B] font-medium mt-0.5">{stat.label}</div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Popular Clinics & App Install Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* Popular Clinics (8 cols) */}
+              <div className="lg:col-span-8 flex flex-col gap-3.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#0F172A] uppercase tracking-wider">
+                    Популярные клиники
+                  </h3>
+                  <button 
+                    onClick={() => router.push('/dashboard/clinics')} 
+                    className="text-xs font-semibold text-[#2563EB] hover:underline"
+                    style={{ minHeight: 'unset', minWidth: 'unset' }}
+                  >
+                    Все клиники →
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {clinicsData.slice(0, 3).map((clinic: any) => (
+                    <div
+                      key={clinic.id}
+                      onClick={() => router.push('/dashboard/clinics')}
+                      className="bg-white border border-[#E8EDF7] hover:border-[#DBEAFE] hover:shadow-md rounded-[18px] p-4 cursor-pointer transition-all flex flex-col justify-between"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="w-8 h-8 rounded-xl bg-[#F7FAFF] border border-[#E8EDF7] flex items-center justify-center text-[#2563EB]">
+                          <Building2 size={16} />
+                        </div>
+                        <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">
+                          <Star size={10} className="text-amber-400 fill-amber-400" />
+                          <span className="text-[11px] font-bold text-amber-600">{clinic.rating}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-bold text-[#0F172A] truncate">{clinic.name}</div>
+                        <div className="text-[11px] text-[#94A3B8] font-medium mt-1 flex items-center gap-1">
+                          <MapPin size={10} />
+                          <span>{clinic.address ? clinic.address.split(',')[0] : 'Шымкент'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Install App Card (4 cols) */}
+              <div className="lg:col-span-4 bg-white border border-[#E8EDF7] rounded-[20px] p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100">
+                      PWA App
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      Offline Mode
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-[#0F172A]">Установите приложение</h4>
+                  <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
+                    Быстрый доступ к маршрутам даже без интернета.
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-[#EEF3F8] flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-[#2563EB]">Установить на экран</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB]">
+                    <Phone size={14} />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom update notice */}
+            <div className="text-center text-[11px] text-[#94A3B8] pt-2">
+              Данные клиник обновлены: Июль 2026 · MediRoute AI
             </div>
           </div>
         )}
@@ -1232,3 +1398,4 @@ export default function HomeView() {
     </div>
   );
 }
+
