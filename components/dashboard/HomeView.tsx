@@ -1253,7 +1253,7 @@ export default function HomeView() {
                       className="w-full flex items-center justify-center gap-2 py-4 rounded-[18px] text-base font-bold text-white bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:shadow-[0_6px_20px_rgba(37,99,235,0.35)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none shadow-md"
                       style={{ minHeight: '52px' }}
                     >
-                      ✨ Начать анализ →
+                      Начать анализ →
                     </button>
 
                     <div className="flex items-center justify-center gap-1.5 text-[11.5px] text-[#94A3B8] font-medium">
@@ -1439,58 +1439,6 @@ export default function HomeView() {
                   </span>
                   <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB]">
                     {isInstalled ? <CheckCircle2 size={16} className="text-emerald-600" /> : <Smartphone size={16} />}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Bottom update notice */}
-            <div className="text-center text-[11px] text-[#94A3B8] pt-2">
-              Данные клиник обновлены: Июль 2026 · MediRoute AI
-            </div>
-          </div>e="w-8 h-8 rounded-xl bg-[#F7FAFF] border border-[#E8EDF7] flex items-center justify-center text-[#2563EB]">
-                          <Building2 size={16} />
-                        </div>
-                        <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5">
-                          <Star size={10} className="text-amber-400 fill-amber-400" />
-                          <span className="text-[11px] font-bold text-amber-600">{clinic.rating}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-xs font-bold text-[#0F172A] truncate">{clinic.name}</div>
-                        <div className="text-[11px] text-[#94A3B8] font-medium mt-1 flex items-center gap-1">
-                          <MapPin size={10} />
-                          <span>{clinic.address ? clinic.address.split(',')[0] : 'Шымкент'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Install App Card (4 cols) */}
-              <div className="lg:col-span-4 bg-white border border-[#E8EDF7] rounded-[20px] p-5 shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100">
-                      PWA App
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
-                      Offline Mode
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-bold text-[#0F172A]">Установите приложение</h4>
-                  <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
-                    Быстрый доступ к маршрутам даже без интернета.
-                  </p>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-[#EEF3F8] flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[#2563EB]">Установить на экран</span>
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB]">
-                    <Phone size={14} />
                   </div>
                 </div>
               </div>
